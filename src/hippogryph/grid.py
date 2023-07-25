@@ -193,61 +193,64 @@ def single_sided_vinokur(ds: float, i: float, I: int,
     return factor
 
 class Uniform:
-    def __init__(self, delta: float, L: float, N: int):
+    def __init__(self, delta: float, L: float, N: int, shift: float = 0.0):
         self.delta = delta
         self.L = L
         self.N = N
+        self.shift = shift
 
     def s(self, i:float) -> float:
-        return i * self.delta
+        return self.shift + i * self.delta
     
     @classmethod
-    def from_delta(cls, delta: float, N: int):
+    def from_delta(cls, delta: float, N: int, shift: float = 0.0):
         L = delta * N
-        return cls(delta, L, N)
+        return cls(delta, L, N, shift=shift)
     
     @classmethod
-    def from_intervals(cls, L: float, N: int):
+    def from_intervals(cls, L: float, N: int, shift: float = 0.0):
         delta = L / float(N)
-        return cls(delta, L, N)
+        return cls(delta, L, N, shift=shift)
 
 class VinokurSingleSided:
-    def __init__(self, factor: float, L: float, N: int):
+    def __init__(self, factor: float, L: float, N: int, shift: float = 0.0):
         self.factor = factor
         self.N = N
         self.I = N # The number of intervals is also where the function ends
         self.L = L
+        self.shift = shift
 
     def s(self, i: float) -> float:
-        return vkruh(self.factor, self.L, i, self.I)
+        return self.shift + vkruh(self.factor, self.L, i, self.I)
     
     @classmethod
     def from_delta(cls, delta: float, L: float, i: float, I: int, tolerance: float = 1.0e-14, max_iterations: int = 100,
-                   output=print):
+                   output=print, shift: float = 0.0):
         ds = delta / L # Rescale
         factor = single_sided_vinokur(ds, i, I, tolerance=tolerance, max_iterations=max_iterations, output=output)
         if factor is None:
             return None
-        return cls(factor, L, I)
+        return cls(factor, L, I, shift=shift)
     
 class Geometric:
-    def __init__(self, factor: float, delta: float, L: float, N: int):
+    def __init__(self, factor: float, delta: float, L: float, N: int, shift: float = 0.0):
         self.factor = factor
         self.delta = delta
         self.L = L
         self.N = N
+        self.shift = shift
 
     def s(self, i: float) -> float:
-        return self.L * geometric(self.factor, self.delta, i)
+        return self.shift + geometric(self.factor, self.delta, i)
     
     @classmethod
     def from_delta(cls, delta: float, L: float, i: float, I: int, tolerance: float = 1.0e-14, max_iterations: int = 100,
-                   output=print):
+                   output=print, shift: float = 0.0):
         ds = delta / L # Rescale
         factor = single_sided_geometric(ds, I, tolerance=tolerance, max_iterations=max_iterations, output=output)
         if factor is None:
             return None
-        return cls(factor, delta, L, I)
+        return cls(factor, delta, L, I, shift=shift)
     
 class Composite:
     def __init__(self, grids=None):
@@ -259,11 +262,16 @@ class Composite:
         self.intervals = []
         for grid in self.grids:
             self.N += grid.N
+            grid.shift = self.L
             self.L += grid.L
             self.intervals.append(self.N)
 
     def s(self, i: float) -> float:
-        for k, N in enumerate(self.intervals):
-            if i <= N:
-                return self.grids[k].s(i) # Not correct
-        return None
+        last = 0
+        for k, n in enumerate(self.intervals[:-1]):
+            if i <= n:
+                return self.grids[k].s(i-last)
+            last = n
+        if i == self.N:
+            return self.L
+        return self.grids[-1].s(i-last)

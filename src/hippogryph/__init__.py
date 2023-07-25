@@ -3,5 +3,5 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-from .grid import vkruh, geometric, single_sided_geometric, single_sided_vinokur, Uniform, VinokurSingleSided, Geometric
+from .grid import vkruh, geometric, geometric_sum, single_sided_geometric, single_sided_vinokur, Uniform, VinokurSingleSided, Geometric, Composite
 from .meshblock import Block, Box, Mesh, AlreadyMeshed

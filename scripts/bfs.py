@@ -41,9 +41,16 @@ if __name__ == "__main__":
 
     mesh.build()
 
-    xgrid = hpg.Uniform.from_intervals(32.0, mesh.ni)
-    ygrid = hpg.Uniform.from_intervals(1.0, mesh.nj)
+    ygrid = hpg.Uniform.from_intervals(1.0, mesh.nj, shift=-0.75)
+    xunif = hpg.Uniform.from_delta(ygrid.delta, 16*N)
+    xstretch = hpg.Geometric.from_delta(xunif.delta, 16, 0, N)
+    xgrid = hpg.Composite([xunif, xstretch])
 
     mesh.apply(xgrid=xgrid, ygrid=ygrid)
 
     mesh.save(args.output)
+
+    print(xgrid.L, xunif.L, xstretch.L)
+    print(xgrid.N, xunif.N, xstretch.N)
+    for i in range(xgrid.N+1):
+        print(i, xgrid.s(i))

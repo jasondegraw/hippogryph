@@ -63,11 +63,15 @@ class Box:
         self.up = up_label
         if self.up:
             self.add_to_subsets(self.up,
-                                SubBlock(3, self.i, self.j+self.nj, self.k, self.ni, 1, self.nk))
+                                SubBlock(3, self.i, self.j + self.nj, self.k, self.ni, 1, self.nk))
         self.down = down_label
         if self.down:
             self.add_to_subsets(self.down,
-                                SubBlock(1, self.i, self.j, self.k, self.ni, 1, self.nk))   
+                                SubBlock(1, self.i, self.j, self.k, self.ni, 1, self.nk))
+            
+        names = [self.down, self.right, self.up, self.left, self.back, self.front]
+        numbers = [1, 2, 3, 4, 5, 6]
+        self._sidesets = [(label, number) for label, number in zip(names, numbers) if label is not None]
 
     def add_to_subsets(self, name, obj):
         if name in self.subsets:
@@ -79,7 +83,25 @@ class Box:
         return numpy.ones((self.ni, self.nj, self.nk), dtype=numpy.uint8)
     
     def sidesets(self):
-        return list(self.subsets.keys())
+        return [el[0] for el in self._sidesets]
+    
+    def sideset(self, name):
+        numbers = [el[1] for el in self._sidesets if el[0] == name]
+        results = []
+        for number in numbers:
+            if number == 1:
+                results.append(SubBlock(1, self.i, self.j, self.k, self.ni, 1, self.nk))
+            elif number == 2:
+                results.append(SubBlock(2, self.i + self.ni - 1, self.j, self.k, 1, self.nj, self.nk))
+            elif number == 3:
+                results.append(SubBlock(3, self.i, self.j + self.nj - 1, self.k, self.ni, 1, self.nk))
+            elif number == 4:
+                results.append(SubBlock(4, self.i, self.j, self.k, 1, self.nj, self.nk))
+            elif number == 5:
+                results.append(SubBlock(5, self.i, self.j, self.k, self.ni, self.nj, 1))
+            else:
+                results.append(SubBlock(6, self.i, self.j, self.k + self.nk - 1, self.ni, self.nj, 1))
+        return results
 
 class AlreadyMeshed(Exception):
     pass
@@ -97,24 +119,51 @@ class Mesh:
         if len(shape) == 1:
             raise NotImplementedError
         elif len(shape) == 2:
+            # Scan the rows to get the ni and nj values
+            i_shift = [None] * shape[0]
+            j_shift = [None] * shape[1]
             index = 0
-            imax = 0
-            jmax = 0
             for j in range(shape[1]):
-                last_j = jmax
+                for i in range(shape[0]):
+                    if array[index]:
+                        if i_shift[i] is None:
+                            i_shift[i] = array[index].ni
+                        else:
+                            if i_shift[i] != array[index].ni:
+                                raise NotImplementedError
+                        if j_shift[j] is None:
+                            j_shift[j] = array[index].nj
+                        else:
+                            if j_shift[j] != array[index].nj:
+                                raise NotImplementedError
+                    index += 1
+            # Convert those into index shifts
+            for i in range(1,shape[0]-1):
+                i_shift[i] += i_shift[i-1]
+            i_shift.insert(0, 0)
+            i_shift = i_shift[:-1]
+            for j in range(1,shape[1]-1):
+                j_shift[j] += j_shift[j-1]
+            j_shift.insert(0, 0)
+            j_shift = j_shift[:-1]
+            # Now modify things so everything lines up
+            index = 0
+            for j in range(shape[1]):
                 row = []
                 for i in range(shape[0]):
                     row.append(array[index])
-                    jmax = max(jmax, array[index].nj)
+                    #if array[index]:
+                    #    jmax = max(jmax, array[index].nj)
                     index += 1
-                for obj in row:
-                    obj.i += imax
-                    obj.j += last_j
-                    imax = obj.i
-                    if obj.nj != jmax:
-                        raise NotImplementedError
-                last_j += jmax
-                primitives.extend(row)
+                for i,obj in enumerate(row):
+                    if not obj:
+                        continue
+                    obj.i += i_shift[i]
+                    obj.j += j_shift[j]
+                    #if obj.nj != jmax:
+                    #    raise NotImplementedError
+                #last_j += jmax
+                primitives.extend([el for el in row if el is not None])
         elif len(shape) > 2:
             raise NotImplementedError
         object = cls(name)
@@ -155,6 +204,7 @@ class Mesh:
             x = numpy.zeros(self.ni+1)
             for i in range(self.ni+1):
                 x[i] = xgrid.s(i)
+                print('xx', i, x[i])
             y = numpy.zeros(self.nj+1)
             for j in range(self.nj+1):
                 y[j] = ygrid.s(j)
@@ -196,8 +246,6 @@ class Mesh:
         for i, block in enumerate(self.blocks):
             block.id = i+1
             reverse_lookup[block.id] = block
-
-        # Get the sidesets we have
         
         # Figure out the size
         if self.two_dimensional:
@@ -295,9 +343,17 @@ class Mesh:
                         index += 1
                         self.node_index[i, j, k] = index
         self.node_count = index
+
+        # Deal with sidesets
+        self.sidesets = {}
+        for set_name in sidesets:
+            self.sidesets[set_name] = []
+            for primitive in self._primitives:
+                self.sidesets[set_name].extend(primitive.sideset(set_name))
+                
         print(self.cell_count, self.node_count)
-        print(len(sidesets))
-        print(sidesets)
+        print(len(self.sidesets))
+        print(self.sidesets)
         print(self.ni, self.nj)
 
     def save(self, filename):
@@ -309,11 +365,11 @@ class Mesh:
             ndim = 2
             nnodes = 4
             type = 'QUAD'
-        sidesets = []
         exo.put_init(self.name, ndim, self.node_count, self.cell_count,
-                     len(self.blocks), 0, len(sidesets))
+                     len(self.blocks), 0, len(self.sidesets))
         exo.put_coord(self.x, self.y)
 
+        # Write out the blocks
         for nb, block in enumerate(self.blocks):
             id = nb + 1
             exo.put_element_block(id, type, block.element_count, nnodes)
@@ -345,5 +401,31 @@ class Mesh:
                                         self.node_index[i,   j+1, k+1]]
                                 conn.append(cell)
             exo.put_element_conn(block.id, numpy.array(conn))
+
+        #exo.close()
+        #return
+
+        # Write out the sidesets
+        id = 1
+        for name, subsets in self.sidesets.items():
+            elements = []
+            sides = []
+            print(name)
+            print(self.cell_index.shape)
+            for sub in subsets:
+                print(range(sub.k - self.k_offset, sub.k - self.k_offset + sub.nk))
+                print(range(sub.j - self.j_offset, sub.j - self.j_offset + sub.nj))
+                print(range(sub.i - self.i_offset, sub.i - self.i_offset + sub.ni))
+                for k in range(sub.k - self.k_offset, sub.k - self.k_offset + sub.nk):
+                    for j in range(sub.j - self.j_offset, sub.j - self.j_offset + sub.nj):
+                        for i in range(sub.i - self.i_offset, sub.i - self.i_offset + sub.ni):
+                            if self.cell_index[i,j,k] > 0:
+                                elements.append(self.cell_index[i,j,k])
+                                sides.append(sub.number)
+            print(len(elements))
+            exo.put_side_set_param(id, len(elements))
+            exo.put_side_set_name(id, name)
+            exo.put_side_set_sides(id, elements, sides)
+            id += 1
 
         exo.close()
