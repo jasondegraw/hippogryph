@@ -1,4 +1,5 @@
 # SPDX-FileCopyrightText: 2014 Jason W. DeGraw <jason.degraw@gmail.com>
+# SPDX-FileCopyrightText: 2023-present Oak Ridge National Laboratory, managed by UT-Battelle
 #
 # SPDX-License-Identifier: BSD-3-Clause
 import math
@@ -6,10 +7,113 @@ import math
 def vkruh(factor: float, L: float, i: float, I: int) -> float:
     return L * (1.0 + math.tanh(factor * (i / I - 1.0)) / math.tanh(factor))
 
-def single_sided_factor(ds: float, i: float, I: int, 
-                        tolerance: float = 1.0e-14,
-                        max_iterations: int = 100,
-                        output = print) -> float:
+def geometric_sum(factor: float, delta: float, i: float) -> float:
+    if i == 0:
+        return 0.0
+    if i == 1:
+        return delta
+    sum = delta
+    for k in range(2, i+1):
+        delta *= factor
+        sum += delta
+    return sum
+
+def geometric(factor: float, delta: float, i: float) -> float:
+    if i == 0:
+        return 0.0
+    if factor == 1:
+        return i*delta
+    return delta * (1.0 - factor**i)/(1.0 - factor)
+
+def single_sided_geometric(delta: float, I: int, 
+                           tolerance: float = 1.0e-14,
+                           max_iterations: int = 100,
+                           output = print, init=2.0) -> float:
+    """
+    single_sided_geometric - Given a spacing, determine the required stretching factor
+
+    The geometric one-sided stretching function between 0 and 1 is
+
+            s = sum_k=0,i-1 (delta * factor^k)
+
+    We apply Newton's Method to find the stretching factor given delta and I.The
+    stretching function can be reorganized as
+
+            f(factor) = 1.0 + delta - sum_k=1,I-1 (delta * factor^k)
+
+    Then
+            f'(factor) = -sum_k=1,I-1 (k * delta * factor^(k-1))
+                       = -delta - sum_k=2,I-1 (k * delta * factor^(k-1))
+                       = -delta - sum_k=1,I-2 ((k+1) * delta * factor^k)
+
+    There are probably shortcuts, need to do better later. Newton's method can now
+    be used to determine the solution.
+    """
+    output("Geometric Stretching Factor Solution ---------------+")
+    output("  ds = % .8e                              |" % delta)
+    output("   I = % .4e                                  |" % I)
+    output(" tol = % .3e, itermax = %5d                  |" % (tolerance, max_iterations))
+    output("----------------------------------------------------+")
+    
+    # Solve only for positive delta
+    if delta <= 0.0:
+       output("No solution for negative ds.                        |")
+       output("----------------------------------------------------+")
+       return None
+
+    factor = init
+    if I * delta > 1.0:
+        factor /= I * delta
+        #f = 1.0
+        #factor_power = 1.0
+        #for k in range(1,I):
+        #    factor_power *= factor
+        #    f -= delta * factor_power
+    #else:
+        #f = 1.0 - (I-1)*delta
+
+    f = delta * (1.0 - factor**I) - 1.0 + factor
+
+    output(" iter          factor                   f           |")
+    output("----- ---------------------- ---------------------- |")
+    output("%5d % .15e % .15e |" % (1, factor, f))
+
+    for iter in range(2, max_iterations+1):
+        #fp = -delta
+        #factor_power = 1.0
+        #for k in range(1, I-1):
+        #    factor_power *= factor
+        #    fp -= (k + 1) * delta * factor_power
+        #print(fp)
+
+        fp = -delta * I * factor**(I-1) + 1.0
+
+        factor -= f / fp
+        #f = 1.0
+        #factor_power = 1.0
+        #for k in range(1,I):
+        #    factor_power *= factor
+        #    f -= delta * factor_power
+
+        f = delta * (1.0 - factor**I) - 1.0 + factor
+
+        output("%5d % .15e % .15e |" % (iter, factor, f))
+
+        if abs(f) <= tolerance:
+            output("----------------------------------------------------+")
+            break
+    else:
+        output("Failed to converge.                                 |")
+        output("----------------------------------------------------+")
+        return None
+    
+    return factor
+    
+
+def single_sided_vinokur(ds: float, i: float, I: int, 
+                         tolerance: float = 1.0e-14,
+                         max_iterations: int = 100,
+                         output = print) -> float:
     """
     single_sided_factor - Given a spacing, determine the required stretching factor
 
@@ -121,10 +225,29 @@ class VinokurSingleSided:
     def from_delta(cls, delta: float, L: float, i: float, I: int, tolerance: float = 1.0e-14, max_iterations: int = 100,
                    output=print):
         ds = delta / L # Rescale
-        factor = single_sided_factor(ds, i, I, tolerance=tolerance, max_iterations=max_iterations, output=output)
+        factor = single_sided_vinokur(ds, i, I, tolerance=tolerance, max_iterations=max_iterations, output=output)
         if factor is None:
             return None
         return cls(factor, L, I)
+    
+class Geometric:
+    def __init__(self, factor: float, delta: float, L: float, N: int):
+        self.factor = factor
+        self.delta = delta
+        self.L = L
+        self.N = N
+
+    def s(self, i: float) -> float:
+        return self.L * geometric(self.factor, self.delta, i)
+    
+    @classmethod
+    def from_delta(cls, delta: float, L: float, i: float, I: int, tolerance: float = 1.0e-14, max_iterations: int = 100,
+                   output=print):
+        ds = delta / L # Rescale
+        factor = single_sided_geometric(ds, I, tolerance=tolerance, max_iterations=max_iterations, output=output)
+        if factor is None:
+            return None
+        return cls(factor, delta, L, I)
     
 class Composite:
     def __init__(self, grids=None):
