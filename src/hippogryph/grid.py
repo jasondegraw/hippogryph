@@ -62,8 +62,12 @@ def single_sided_geometric(delta: float, I: int,
        return None
 
     factor = init
-    if I * delta > 1.0:
-        factor /= I * delta
+    if delta > 1.0:
+        output("No solution for negative delta > 1.0.               |")
+        output("----------------------------------------------------+")
+        return None
+    #elif I * delta > 1.0:
+        #factor /= I * delta
         #f = 1.0
         #factor_power = 1.0
         #for k in range(1,I):
@@ -255,7 +259,7 @@ class Geometric:
 class Composite:
     def __init__(self, grids=None):
         self.grids = grids
-        if grids is None:
+        if not grids:
             self.grids = []
         self.L = 0.0
         self.N = 0

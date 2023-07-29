@@ -70,3 +70,17 @@ def test_composites():
     assert obj.N == 42
     assert obj.s(42) == 11.0
     assert obj.intervals == [10, 42]
+
+    grids = []
+    obj = hippogryph.Composite(grids)
+    assert obj.grids == []
+
+def test_fails():
+    factor = hippogryph.single_sided_geometric(-0.002, 32, output=dev_null)
+    assert factor is None
+    factor = hippogryph.single_sided_geometric(2.0, 32, output=dev_null)
+    assert factor is None
+    grid = hippogryph.Geometric.from_delta(25.0, 10.0, 0, 32, output=dev_null)
+    assert grid is None
+    factor = hippogryph.single_sided_geometric(1.0e-3, 32, output=dev_null, max_iterations=2)
+    assert factor is None
