@@ -23,8 +23,7 @@ classifiers = [
 ]
 dependencies = [
   "click",
-  "numpy",
-  "plot3d"
+  "numpy"
 ]
 dynamic = ["version"]
 

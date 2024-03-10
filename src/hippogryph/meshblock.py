@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 import numpy
-import exodusii
+#import exodusii
 
 class SubBlock:
     def __init__(self, number, i, j, k, ni, nj, nk):
@@ -121,7 +121,7 @@ class Mesh:
         kmax = None
         if shape is not None:
             if len(shape) > 2:
-                print(len(shape))
+                #print(len(shape))
                 raise NotImplementedError("Three dimensional construction from array not implemented")
             imax = shape[0]
             jmax = shape[1]
@@ -209,7 +209,7 @@ class Mesh:
             x = numpy.zeros(self.ni+1)
             for i in range(self.ni+1):
                 x[i] = xgrid.s(i)
-                print('xx', i, x[i])
+                #print('xx', i, x[i])
             y = numpy.zeros(self.nj+1)
             for j in range(self.nj+1):
                 y[j] = ygrid.s(j)
@@ -244,7 +244,7 @@ class Mesh:
             if not primitive.block in self.blocks:
                 self.blocks.append(primitive.block)
             sidesets.update(primitive.sidesets())
-            print(primitive.sidesets())
+            #print(primitive.sidesets())
         
         # Number the blocks from 1
         reverse_lookup = {}
@@ -356,12 +356,15 @@ class Mesh:
             for primitive in self._primitives:
                 self.sidesets[set_name].extend(primitive.sideset(set_name))
                 
-        print(self.cell_count, self.node_count)
-        print(len(self.sidesets))
-        print(self.sidesets)
-        print(self.ni, self.nj)
+        #print(self.cell_count, self.node_count)
+        #print(len(self.sidesets))
+        #print(self.sidesets)
+        #print(self.ni, self.nj)
+    
+    def write_plot3d(self, filename:str)->bool:
+        return False
 
-    def save(self, filename):
+    def write_exodusii(self, filename:str):
         exo = exodusii.exodusii_file(filename, 'w')
         ndim = 3
         nnodes = 8
@@ -415,19 +418,19 @@ class Mesh:
         for name, subsets in self.sidesets.items():
             elements = []
             sides = []
-            print(name)
-            print(self.cell_index.shape)
+            #print(name)
+            #print(self.cell_index.shape)
             for sub in subsets:
-                print(range(sub.k - self.k_offset, sub.k - self.k_offset + sub.nk))
-                print(range(sub.j - self.j_offset, sub.j - self.j_offset + sub.nj))
-                print(range(sub.i - self.i_offset, sub.i - self.i_offset + sub.ni))
+                #print(range(sub.k - self.k_offset, sub.k - self.k_offset + sub.nk))
+                #print(range(sub.j - self.j_offset, sub.j - self.j_offset + sub.nj))
+                #print(range(sub.i - self.i_offset, sub.i - self.i_offset + sub.ni))
                 for k in range(sub.k - self.k_offset, sub.k - self.k_offset + sub.nk):
                     for j in range(sub.j - self.j_offset, sub.j - self.j_offset + sub.nj):
                         for i in range(sub.i - self.i_offset, sub.i - self.i_offset + sub.ni):
                             if self.cell_index[i,j,k] > 0:
                                 elements.append(self.cell_index[i,j,k])
                                 sides.append(sub.number)
-            print(len(elements))
+            #print(len(elements))
             exo.put_side_set_param(id, len(elements))
             exo.put_side_set_name(id, name)
             exo.put_side_set_sides(id, elements, sides)
