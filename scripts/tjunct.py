@@ -97,6 +97,7 @@ if __name__ == "__main__":
     ygrid = hpg.Composite([yunif, ystretch])
 
     mesh.apply(xgrid=xgrid, ygrid=ygrid)
+    mesh.y -= 0.5 # Hack to fix things
 
     mesh.save(args.output)
 
