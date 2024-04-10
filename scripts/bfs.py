@@ -20,12 +20,6 @@ if __name__ == "__main__":
                         default=32, help='number of intervals across the channel', type=positive_even_int)
     parser.add_argument('-v', '--verbose', dest='verbose', action='store_true',
                         default=False, help='make lots of noise')
-    #parser.add_argument('-l', '--list', dest='list', action='store_true',
-    #                    default=False, help='list objects and exit')
-    #parser.add_argument('-c', '--contains', dest='contains', action='store',
-    #                    default='', help='simple filter using "in" for matching')
-    #parser.add_argument('-e', '--exactly', dest='exactly', action='append',
-    #                    help='simple filter using exact matching')
 
     args = parser.parse_args()
 

@@ -3,6 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 import hippogryph
+import pytest
 
 def dev_null(mesg):
     pass
@@ -72,8 +73,8 @@ def test_composites():
     assert obj.intervals == [10, 42]
 
     grids = []
-    obj = hippogryph.Composite(grids)
-    assert obj.grids == []
+    with pytest.raises(hippogryph.BadGrid):
+        obj = hippogryph.Composite(grids)
 
 def test_fails():
     factor = hippogryph.single_sided_geometric(-0.002, 32, output=dev_null)

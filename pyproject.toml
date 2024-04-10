@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "hippogryph"
 description = 'Multiblock structured mesh generation with Python'
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.10"
 license = "BSD-3-Clause"
 keywords = []
 authors = [
@@ -17,12 +17,13 @@ classifiers = [
   "Programming Language :: Python",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
-  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [
   "click",
+  "exodusii@git+https://github.com/jasondegraw/exodusii#egg=block-names",
   "numpy"
 ]
 dynamic = ["version"]
@@ -48,7 +49,10 @@ cov = "pytest --cov-report=term-missing --cov-config=pyproject.toml --cov=src/hi
 no-cov = "cov --no-cov {args}"
 
 [[tool.hatch.envs.test.matrix]]
-python = ["37", "38", "39", "310", "311"]
+python = ["310", "311", "312"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
 
 [tool.coverage.run]
 branch = true

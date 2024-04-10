@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 import numpy
-#import exodusii
+import exodusii
 
 class SubBlock:
     def __init__(self, number, i, j, k, ni, nj, nk):
@@ -14,7 +14,6 @@ class SubBlock:
         self.ni = ni
         self.nj = nj
         self.nk = nk
-
 
 class Block:
     def __init__(self, name: str, id: int = 1):

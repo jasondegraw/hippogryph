@@ -5,6 +5,9 @@
 import math
 import numbers
 
+class BadGrid(Exception):
+    pass
+
 def vkruh(factor: float, L: float, i: float, I: int) -> float:
     return L * (1.0 + math.tanh(factor * (i / I - 1.0)) / math.tanh(factor))
 
@@ -306,10 +309,10 @@ class Geometric:
         return cls(factor, delta, L, I, shift=shift)
     
 class Composite:
-    def __init__(self, grids=None):
+    def __init__(self, grids):
         self.grids = grids
         if not grids:
-            self.grids = []
+            raise BadGrid('Composite grid cannot be constructed without input grids.')
         self.L = 0.0
         self.N = 0
         self.intervals = []
