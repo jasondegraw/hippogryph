@@ -23,7 +23,7 @@ classifiers = [
 ]
 dependencies = [
   "click",
-  "exodusii@git+https://github.com/jasondegraw/exodusii#egg=block-names",
+  "exodusii@git+https://github.com/jasondegraw/exodusii.git@a2220a8d5434b7199ff43d8f7c94cbaeeca17eb6",
   "numpy"
 ]
 dynamic = ["version"]
