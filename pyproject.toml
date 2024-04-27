@@ -23,7 +23,8 @@ classifiers = [
 ]
 dependencies = [
   "click",
-  "numpy"
+  "numpy",
+  "netcdf4"
 ]
 dynamic = ["version"]
 

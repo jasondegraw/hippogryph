@@ -3,7 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 import hippogryph
-import exodusii
+import hippogryph.exodusii as exodusii
 import numpy as np
 import os
 
