@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2023-present Oak Ridge National Laboratory, managed by UT-Battelle
 #
 # SPDX-License-Identifier: BSD-3-Clause
-import numpy
+import numpy as np
 from . import exodusii
 
 class SubBlock:
@@ -79,7 +79,7 @@ class Box:
             self.subsets[name] = [obj]
 
     def footprint(self):
-        return numpy.ones((self.ni, self.nj, self.nk), dtype=numpy.uint8)
+        return np.ones((self.ni, self.nj, self.nk), dtype=np.uint8)
     
     def sidesets(self):
         return [el[0] for el in self._sidesets]
@@ -111,6 +111,7 @@ class Mesh:
         self._primitives = []
         self.two_dimensional = False
         self._meshed = False
+        self._indexed = False
 
     @classmethod
     def from_array(cls, name, array, shape=None): # rework this with Numpy or something
@@ -189,32 +190,24 @@ class Mesh:
         else:
             self._primitives.append(primitive)
             self.two_dimensional = primitive.two_dimensional
-
-    def mesh(self, force=False):
-        if self._meshed:
-            raise AlreadyMeshed('Mesh "{self.name}" is already meshed')
-        if force:
-            raise NotImplementedError
-        
-        self.build(force=force)
     
-    def apply(self, xgrid, ygrid, zgrid=None, force=False):
+    def mesh(self, xgrid, ygrid, zgrid=None, force=False):
         if self._meshed:
             raise AlreadyMeshed('Mesh "{self.name}" is already meshed')
         if force:
             raise NotImplementedError
         
         if self.two_dimensional:
-            x = numpy.zeros(self.ni+1)
+            x = np.zeros(self.ni+1)
             for i in range(self.ni+1):
                 x[i] = xgrid.s(i)
                 #print('xx', i, x[i])
-            y = numpy.zeros(self.nj+1)
+            y = np.zeros(self.nj+1)
             for j in range(self.nj+1):
                 y[j] = ygrid.s(j)
 
-            self.x = numpy.zeros(self.node_count)
-            self.y = numpy.zeros(self.node_count)
+            self.x = np.zeros(self.node_count)
+            self.y = np.zeros(self.node_count)
 
             k = 0
             index = 0
@@ -226,8 +219,10 @@ class Mesh:
                         index += 1
         else:
             raise NotImplementedError
+        
+        self._meshed = True
 
-    def build(self, force=False):
+    def index(self, force=False):
         if self._meshed:
             raise AlreadyMeshed('Mesh "{self.name}" is already meshed')
         if force:
@@ -289,9 +284,12 @@ class Mesh:
             self.j_offset = j_offset
             self.k_offset = k_offset
 
-        self.cells = numpy.zeros((self.ni, self.nj, self.nk), dtype=numpy.uint8)
-        self.cell_index = numpy.zeros((self.ni, self.nj, self.nk), dtype=numpy.uint64)
-        self.node_index = numpy.zeros((self.ni+1, self.nj+1, self.nk+1), dtype=numpy.uint64)
+        self.cells = np.zeros((self.ni, self.nj, self.nk), dtype=np.uint8)
+        self.cell_index = np.zeros((self.ni, self.nj, self.nk), dtype=np.uint64)
+        node_nk = self.nk+1
+        if self.two_dimensional:
+            node_nk = 1
+        self.node_index = np.zeros((self.ni+1, self.nj+1, node_nk), dtype=np.uint64)
 
         # Map it out
         for primitive in self.primitives:
@@ -359,6 +357,40 @@ class Mesh:
         #print(len(self.sidesets))
         #print(self.sidesets)
         #print(self.ni, self.nj)
+        self._indexed = True
+    
+    def iblank(self) -> np.array:
+        if not self._indexed:
+            self.index()
+        ib = np.where(self.node_index>0, 1, 0)
+        #ib = np.greater(self.node_index, 0, dtype=np.uint64)
+        return ib
+
+        if self.two_dimensional:
+            ib = np.zeros((self.ni+1, self.nj+1, 1), dtype=np.uint64)
+            k = 0
+            for j in range(self.nj):
+                for i in range(self.ni):
+                    if self.cells[i, j, k] > 0:
+                        ib[i,   j,   k] = 1
+                        ib[i+1, j,   k] = 1
+                        ib[i+1, j+1, k] = 1
+                        ib[i,   j+1, k] = 1
+        else:
+            ib = numpy.zeros((self.ni+1, self.nj+1, self.nk+1), dtype=numpy.uint64)
+            for k in range(self.nk):
+                for j in range(self.nj):
+                    for i in range(self.ni):
+                        if self.cells[i, j, k] > 0:
+                            ib[i,   j,   k] = 1
+                            ib[i+1, j,   k] = 1
+                            ib[i+1, j+1, k] = 1
+                            ib[i,   j+1, k] = 1
+                            ib[i,   j,   k+1] = 1
+                            ib[i+1, j,   k+1] = 1
+                            ib[i+1, j+1, k+1] = 1
+                            ib[i,   j+1, k+1] = 1
+        return ib
     
     def write_plot3d(self, filename:str)->bool:
         return False
@@ -407,7 +439,7 @@ class Mesh:
                                         self.node_index[i+1, j+1, k+1],
                                         self.node_index[i,   j+1, k+1]]
                                 conn.append(cell)
-            exo.put_element_conn(block.id, numpy.array(conn))
+            exo.put_element_conn(block.id, np.array(conn))
 
         #exo.close()
         #return
