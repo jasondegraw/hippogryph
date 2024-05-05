@@ -118,7 +118,7 @@ class Mesh:
         primitives = []
         imax = len(array)
         jmax = 1
-        kmax = None
+        # kmax = None
         if shape is not None:
             if len(shape) > 2:
                 #print(len(shape))
@@ -235,7 +235,7 @@ class Mesh:
         self.blocks = []
         sidesets = set()
         for primitive in self._primitives:
-            if not primitive.block in self.blocks:
+            if primitive.block not in self.blocks:
                 self.blocks.append(primitive.block)
             sidesets.update(primitive.sidesets())
             #print(primitive.sidesets())
@@ -284,12 +284,12 @@ class Mesh:
             self.j_offset = j_offset
             self.k_offset = k_offset
 
-        self.cells = np.zeros((self.ni, self.nj, self.nk), dtype=np.uint8)
-        self.cell_index = np.zeros((self.ni, self.nj, self.nk), dtype=np.uint64)
+        self.cells = np.zeros((self.ni, self.nj, self.nk), dtype=np.uint8, order='F')
+        self.cell_index = np.zeros((self.ni, self.nj, self.nk), dtype=np.uint64, order='F')
         node_nk = self.nk+1
         if self.two_dimensional:
             node_nk = 1
-        self.node_index = np.zeros((self.ni+1, self.nj+1, node_nk), dtype=np.uint64)
+        self.node_index = np.zeros((self.ni+1, self.nj+1, node_nk), dtype=np.uint64, order='F')
 
         # Map it out
         for primitive in self.primitives:
@@ -360,36 +360,10 @@ class Mesh:
         self._indexed = True
     
     def iblank(self) -> np.array:
+        print(self.node_index)
         if not self._indexed:
             self.index()
         ib = np.where(self.node_index>0, 1, 0)
-        #ib = np.greater(self.node_index, 0, dtype=np.uint64)
-        return ib
-
-        if self.two_dimensional:
-            ib = np.zeros((self.ni+1, self.nj+1, 1), dtype=np.uint64)
-            k = 0
-            for j in range(self.nj):
-                for i in range(self.ni):
-                    if self.cells[i, j, k] > 0:
-                        ib[i,   j,   k] = 1
-                        ib[i+1, j,   k] = 1
-                        ib[i+1, j+1, k] = 1
-                        ib[i,   j+1, k] = 1
-        else:
-            ib = numpy.zeros((self.ni+1, self.nj+1, self.nk+1), dtype=numpy.uint64)
-            for k in range(self.nk):
-                for j in range(self.nj):
-                    for i in range(self.ni):
-                        if self.cells[i, j, k] > 0:
-                            ib[i,   j,   k] = 1
-                            ib[i+1, j,   k] = 1
-                            ib[i+1, j+1, k] = 1
-                            ib[i,   j+1, k] = 1
-                            ib[i,   j,   k+1] = 1
-                            ib[i+1, j,   k+1] = 1
-                            ib[i+1, j+1, k+1] = 1
-                            ib[i,   j+1, k+1] = 1
         return ib
     
     def write_plot3d(self, filename:str)->bool:

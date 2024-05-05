@@ -6,6 +6,9 @@ from .meshblock import Block, Box, Mesh
 from .grid import Uniform, Geometric, Composite
 
 def backward_step(M:int) -> Mesh:
+    """
+    
+    """
     N = 2*M
     block = Block('domain')
     boxN = Box(ni=17*N, nj=M, block=block, left_label='inflow', right_label='outflow',
@@ -47,20 +50,24 @@ def tee_junction(N:int) -> Mesh:
     H = 1.0 # height of the inlet channel
 
     half = int(0.5 * branch_div_H)
-    W = inlet_div_H * H
 
     block = Block('domain')
-    inlet = Box(ni=W*N, nj=N, block=block, left_label='inflow', up_label='inlet_north', down_label='south')
+    inlet = Box(ni=inlet_div_H*N, nj=N, block=block, left_label='inflow',
+                up_label='inlet_north', down_label='south')
     junction = Box(ni=N, nj=N, block=block, down_label='south')
-    main0 = Box(ni=half*N, nj=N, block=block, down_label='south', up_label='main_north')
-    main1 = Box(ni=N, nj=N, block=block, down_label='south', right_label='east_outflow', up_label='main_north')
-    branch0 = Box(ni=N, nj=half*N, block=block, left_label='branch_west', right_label='branch_east')
-    branch1 = Box(ni=N, nj=N, block=block, left_label='branch_west', right_label='branch_east', up_label='north_outflow')
+    main0 = Box(ni=half*N, nj=N, block=block, down_label='south',
+                up_label='main_north')
+    main1 = Box(ni=N, nj=N, block=block, down_label='south',
+                right_label='east_outflow', up_label='main_north')
+    branch0 = Box(ni=N, nj=half*N, block=block, left_label='branch_west',
+                  right_label='branch_east')
+    branch1 = Box(ni=N, nj=N, block=block, left_label='branch_west',
+                  right_label='branch_east', up_label='north_outflow')
 
-    mesh = Mesh.from_array('T-junction', [inlet, junction, main0, main1, None, branch0, None, None, None, branch1, None, None], shape=(4,3))
-
-    # for box in mesh.primitives:
-    #     print(box.i, box.j)
+    mesh = Mesh.from_array('T-junction',
+                           [inlet, junction, main0, main1,
+                            None, branch0, None, None,
+                            None, branch1, None, None], shape=(4,3))
 
     mesh.index()
 

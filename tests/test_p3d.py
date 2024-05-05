@@ -3,9 +3,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 import hippogryph
-import hippogryph.exodusii as exodusii
 import numpy as np
-import os
 
 def dev_null(mesg):
     pass
@@ -47,12 +45,29 @@ def test_bfs(tmpdir):
     #    assert len(coords) == 105
     #    conn = exof.get_element_connectivity(1).elem_conn
     #    assert len(conn) == 68
-        
+
+tee_ib_2 = [[1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0, 0, 0, 0, 0, 0]]
+
+tee_ib_3 = np.expand_dims(tee_ib_2, axis=2)
+
 def test_tee(tmpdir):
     mesh = hippogryph.tee_junction(1)
     ib = mesh.iblank()
-    assert ib.shape == (35,3,1)
-    #np.testing.assert_array_equal(ib, 1)
+    assert ib.shape == (13,10,1)
+    assert tee_ib_3.shape == (13,10,1)
+    np.testing.assert_array_equal(ib, tee_ib_3)
     #fullpath = os.path.join(tmpdir,'bfs.exo')
     #mesh.write_exodusii(fullpath)
     #with exodusii.File(fullpath, mode="r") as exof:
