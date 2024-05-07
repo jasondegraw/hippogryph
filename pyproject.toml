@@ -69,7 +69,7 @@ exclude_lines = [
 ]
 
 [tool.ruff]
-exclude = ["src/hippogryph/plot3d"]
+exclude = ["src/hippogryph/plot3d", "src/hippogryph/exodusii"]
 
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]
