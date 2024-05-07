@@ -2,7 +2,6 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 import argparse
-import exodusii
 import hippogryph as hpg
 
 def positive_even_int(string):

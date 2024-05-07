@@ -67,3 +67,9 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
+
+[tool.ruff]
+exclude = ["src/hippogryph/plot3d", "src/hippogryph/exodusii"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
