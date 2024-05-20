@@ -5,6 +5,16 @@
 from .meshblock import Block, Box, Mesh
 from .grid import Uniform, Geometric, Composite
 
+def channel(x:float, y:float, z:float, ni:int, nj:int, nk:int):
+    """
+    
+    """
+    block = Block('domain')
+    box = Box(ni=ni, nj=nj, nk=nk, block=block, left_label='inflow', right_label='outflow')
+
+    mesh = Mesh('channel')
+    mesh.add(box)
+
 def backward_step(M:int) -> Mesh:
     """
     

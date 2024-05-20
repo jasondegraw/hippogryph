@@ -32,6 +32,7 @@ class Box:
         self.ni = ni
         self.nj = nj
         self.nk = nk
+        self.two_dimensional = False
         if nk is None:
             self.k = 0
             self.nk = 1

@@ -31,28 +31,33 @@ def guess_output_format(filename: str) -> Format|None:
 @click.command()
 @click.option('-x', '--x-length', type=click.FloatRange(0.0, min_open=True), show_default=True, default=32.0, help='Length of the grid in the x direction.')
 @click.option('-y', '--y-length', type=click.FloatRange(0.0, min_open=True), show_default=True, default=1.0, help='Length of the grid in the y direction.')
-#@click.option('-z', '--z-length', type=click.File('w'), show_default=True, default=1.0, help='Length of the grid in the z direction.')
+@click.option('-z', '--z-length', type=click.FloatRange(0.0, min_open=False), show_default=True, default=0.0, help='Length of the grid in the z direction.')
+@click.option('-i', '--ni', type=click.IntRange(1), show_default=True, default=32, help='Number of cells in the i (x) direction.')
+@click.option('-j', '--nj', type=click.IntRange(1), show_default=True, default=32)
+@click.option('-k', '--nk', type=click.IntRange(0), show_default=True, default=0)
 @click.option('-o', '--output', type=click.File('w'), show_default=True, default='hgf.exo', help='Write output to the specified file.')
 @click.option('-f', '--format', type=click.Choice(['exo', 'plot3d', 'plot3d_2d']), default=None, help='Specify format to use.')
 @click.option('-a', '--ascii', is_flag=True, show_default=True, default=False, help='Write ASCII format (if possible).')
-def channel(x_length, y_length, output, format, ascii):
-    '''
+def channel(x_length, y_length, z_length, ni, nj, nk, output, format, ascii):
+    """
     Generate a channel grid.
-    '''
-    block = hpg.Block('domain')
-    box = hpg.Box(ni=32, nj=32, block=block, left_label='west', right_label='east',
-                  up_label='north', down_label='south')
-    mesh = hpg.Mesh('channel')
-    mesh.add(box)
-    mesh.build()
+    """
 
-    xgrid = hpg.Uniform.from_intervals(1.0, x_length)
-    ygrid = hpg.Uniform.from_intervals(1.0, y_length, shift=-0.5)
+    mesh = hpg.channel(x_length, y_length, z_length, ni, nj, nk)
+    #block = hpg.Block('domain')
+    #box = hpg.Box(ni=32, nj=32, block=block, left_label='west', right_label='east',
+    #              up_label='north', down_label='south')
+    #mesh = hpg.Mesh('channel')
+    #mesh.add(box)
+    #mesh.build()
+
+    #xgrid = hpg.Uniform.from_intervals(1.0, x_length)
+    #ygrid = hpg.Uniform.from_intervals(1.0, y_length, shift=-0.5)
     #xunif = hpg.Uniform.from_delta(ygrid.delta, 16*N)
     #xstretch = hpg.Geometric.from_delta(xunif.delta, 16, N)
     #xgrid = hpg.Composite([xunif, xstretch])
 
-    mesh.apply(xgrid=xgrid, ygrid=ygrid)
+    #mesh.apply(xgrid=xgrid, ygrid=ygrid)
 
 def validate_even_int(ctx: click.core.Context,
                   param: click.core.Argument, value: str) -> int:
