@@ -8,8 +8,8 @@ import numbers
 class BadGrid(Exception):
     pass
 
-def vkruh(factor: float, L: float, i: float, I: int) -> float:
-    return L * (1.0 + math.tanh(factor * (i / I - 1.0)) / math.tanh(factor))
+def vkruh(factor: float, L: float, i: float, n: int) -> float:
+    return L * (1.0 + math.tanh(factor * (i / n - 1.0)) / math.tanh(factor))
 
 def geometric_sum(factor: float, delta: float, i: float) -> float:
     if i == 0:
@@ -30,7 +30,7 @@ def geometric(factor: float, delta: float, i: float) -> float:
     return delta * (1.0 - factor**i)/(1.0 - factor)
 
 def single_sided_geometric(delta: float,
-                           I: int, 
+                           n: int, 
                            tolerance: float = 1.0e-14,
                            max_iterations: int = 100,
                            output = print, init=2.0) -> float:
@@ -41,22 +41,22 @@ def single_sided_geometric(delta: float,
 
             s = sum_k=0,i-1 (delta * factor^k)
 
-    We apply Newton's Method to find the stretching factor given delta and I.The
+    We apply Newton's Method to find the stretching factor given delta and n.The
     stretching function can be reorganized as
 
-            f(factor) = 1.0 + delta - sum_k=1,I-1 (delta * factor^k)
+            f(factor) = 1.0 + delta - sum_k=1,n-1 (delta * factor^k)
 
     Then
             f'(factor) = -sum_k=1,I-1 (k * delta * factor^(k-1))
-                       = -delta - sum_k=2,I-1 (k * delta * factor^(k-1))
-                       = -delta - sum_k=1,I-2 ((k+1) * delta * factor^k)
+                       = -delta - sum_k=2,n-1 (k * delta * factor^(k-1))
+                       = -delta - sum_k=1,n-2 ((k+1) * delta * factor^k)
 
     There are probably shortcuts, further work is needed. Newton's method can now
     be used to determine the solution.
     """
     output("Geometric Stretching Factor Solution ---------------+")
     output("  ds = % .8e                              |" % delta)
-    output("   I = % .4e                                  |" % I)
+    output("   I = % .4e                                  |" % n)
     output(" tol = % .3e, itermax = %5d                  |" % (tolerance, max_iterations))
     output("----------------------------------------------------+")
     
@@ -81,7 +81,7 @@ def single_sided_geometric(delta: float,
     #else:
         #f = 1.0 - (I-1)*delta
 
-    f = delta * (1.0 - factor**I) - 1.0 + factor
+    f = delta * (1.0 - factor**n) - 1.0 + factor
 
     output(" iter          factor                   f           |")
     output("----- ---------------------- ---------------------- |")
@@ -95,7 +95,7 @@ def single_sided_geometric(delta: float,
         #    fp -= (k + 1) * delta * factor_power
         #print(fp)
 
-        fp = -delta * I * factor**(I-1) + 1.0
+        fp = -delta * n * factor**(n-1) + 1.0
 
         factor -= f / fp
         #f = 1.0
@@ -104,7 +104,7 @@ def single_sided_geometric(delta: float,
         #    factor_power *= factor
         #    f -= delta * factor_power
 
-        f = delta * (1.0 - factor**I) - 1.0 + factor
+        f = delta * (1.0 - factor**n) - 1.0 + factor
 
         output("%5d % .15e % .15e |" % (iter, factor, f))
 
@@ -119,7 +119,7 @@ def single_sided_geometric(delta: float,
     return factor
     
 
-def single_sided_vinokur(ds: float, i: float, I: int, 
+def single_sided_vinokur(ds: float, i: float, n: int, 
                          tolerance: float = 1.0e-14,
                          max_iterations: int = 100,
                          output = print) -> float:
@@ -128,12 +128,12 @@ def single_sided_vinokur(ds: float, i: float, I: int,
 
     Vinokur's one-sided stretching function between 0 and 1 is
 
-            ds = 1 + tanh(factor * (i / I - 1)) / tanh(factor)
+            ds = 1 + tanh(factor * (i / n - 1)) / tanh(factor)
 
     We apply Newton's Method to find the stretching factor given ds, i, and
-    I. The stretching function can be reorganized as
+    n. The stretching function can be reorganized as
 
-             (ds - 1)tanh(factor) = tanh(factor * (i / I - 1))
+             (ds - 1)tanh(factor) = tanh(factor * (i / n - 1))
                 C2 * tanh(factor) = tanh(C1 * factor)
 
     This only has solutions if |C2| > |C1|.  To see this, note that the
@@ -149,12 +149,12 @@ def single_sided_vinokur(ds: float, i: float, I: int,
     Newton's method can now be used to determine the solution.
     """
 
-    C1 = float(i) / float(I) - 1.0
+    C1 = float(i) / float(n) - 1.0
     C2 = ds - 1.0
     
     output("Vinokur h Stretching Factor Solution ---------------+")
     output("  ds = % .8e                              |" % ds)
-    output("   I = % .4e                                  |" % I)
+    output("   I = % .4e                                  |" % n)
     output(" tol = % .3e, itermax = %5d                  |" % (tolerance, max_iterations))
     output("----------------------------------------------------+")
     
@@ -268,13 +268,13 @@ class VinokurSingleSided:
         return None
     
     @classmethod
-    def from_delta(cls, delta: float, L: float, i: float, I: int, tolerance: float = 1.0e-14, max_iterations: int = 100,
+    def from_delta(cls, delta: float, L: float, i: float, n: int, tolerance: float = 1.0e-14, max_iterations: int = 100,
                    output=print, shift: float = 0.0):
         ds = delta / L # Rescale
-        factor = single_sided_vinokur(ds, i, I, tolerance=tolerance, max_iterations=max_iterations, output=output)
+        factor = single_sided_vinokur(ds, i, n, tolerance=tolerance, max_iterations=max_iterations, output=output)
         if factor is None:
             return None
-        return cls(factor, L, I, shift=shift)
+        return cls(factor, L, n, shift=shift)
     
 class Geometric:
     def __init__(self, factor: float, delta: float, L: float, N: int, shift: float = 0.0):
@@ -300,13 +300,13 @@ class Geometric:
                                   shift=shift)
     
     @classmethod
-    def from_delta(cls, delta: float, L: float, I: int, tolerance: float = 1.0e-14, max_iterations: int = 100,
+    def from_delta(cls, delta: float, L: float, n: int, tolerance: float = 1.0e-14, max_iterations: int = 100,
                    output=print, shift: float = 0.0):
         ds = delta / L # Rescale
-        factor = single_sided_geometric(ds, I, tolerance=tolerance, max_iterations=max_iterations, output=output)
+        factor = single_sided_geometric(ds, n, tolerance=tolerance, max_iterations=max_iterations, output=output)
         if factor is None:
             return None
-        return cls(factor, delta, L, I, shift=shift)
+        return cls(factor, delta, L, n, shift=shift)
     
 class Composite:
     def __init__(self, grids):
