@@ -7,6 +7,8 @@ import hippogryph.exodusii as exodusii
 import numpy as np
 import os
 
+import hippogryph.plot3d
+
 def dev_null(mesg):
     pass
 
@@ -73,3 +75,9 @@ def test_tee(tmpdir):
         assert np.allclose(coords, tee_pts)
         conn = exof.get_element_connectivity(1).elem_conn
         assert len(conn) == 20
+
+def test_channel_3d(tmpdir):
+    mesh = hippogryph.channel(x=1.0, y=1.0, z=1.0, ni=4, nj=8, nk=2)
+    assert mesh.node_count == 5*9*3
+    assert mesh.cell_count == 64
+    

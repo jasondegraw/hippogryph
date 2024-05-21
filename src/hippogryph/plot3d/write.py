@@ -6,7 +6,6 @@ import os.path as osp
 import struct
 from typing import List
 
-from pandas.core.indexing import need_slice
 from .block import Block
 
 def __write_plot3D_block_binary(f,B:Block,double_precision:bool=True):

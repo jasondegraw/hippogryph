@@ -43,7 +43,7 @@ def channel(x_length, y_length, z_length, ni, nj, nk, output, format, ascii):
     Generate a channel grid.
     """
 
-    mesh = hpg.channel(x_length, y_length, z_length, ni, nj, nk)
+    mesh = hpg.channel(x=x_length, y=y_length, z=z_length, ni=ni, nj=nj, nk=nk)
     #block = hpg.Block('domain')
     #box = hpg.Box(ni=32, nj=32, block=block, left_label='west', right_label='east',
     #              up_label='north', down_label='south')

@@ -2,18 +2,35 @@
 # SPDX-FileCopyrightText: 2023-present Oak Ridge National Laboratory, managed by UT-Battelle
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from .meshblock import Block, Box, Mesh
+from .meshblock import Block, Box, Mesh, DimensionalityError
 from .grid import Uniform, Geometric, Composite
 
-def channel(x:float, y:float, z:float, ni:int, nj:int, nk:int):
+def channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk:int=0):
     """
     
     """
+    if nk == 0 and z > 0.0:
+        raise DimensionalityError('Channel grid specifies zero z-direction cells but non-zero z length')
+    if nk > 0 and  z == 0.0:
+        raise DimensionalityError('Channel grid specifies zero z length but non-zero z-direction cells')
+
     block = Block('domain')
     box = Box(ni=ni, nj=nj, nk=nk, block=block, left_label='inflow', right_label='outflow')
 
     mesh = Mesh('channel')
     mesh.add(box)
+
+    mesh.index()
+
+    xgrid = Uniform.from_intervals(x, mesh.ni)
+    ygrid = Uniform.from_intervals(y, mesh.nj, shift=-0.5*y)
+    zgrid = None
+    if nk != 0:
+        zgrid = Uniform.from_intervals(z, mesh.nk, shift=-0.5*z)
+
+    mesh.mesh(xgrid=xgrid, ygrid=ygrid, zgrid=zgrid)
+
+    return mesh
 
 def backward_step(M:int) -> Mesh:
     """

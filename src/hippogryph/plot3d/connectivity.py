@@ -6,7 +6,6 @@ from .face import Face
 from .facefunctions import create_face_from_diagonals, split_face, get_outer_faces
 import math 
 from itertools import product, combinations
-from tqdm import trange
 import numpy as np 
 import pandas as pd
 from typing import List
@@ -402,7 +401,7 @@ def connectivity(blocks:List[Block]):
     block_outer_faces = [t[0] for t in temp]
     combos = combinations_of_nearest_blocks(blocks,6) # Find the 6 nearest Blocks and search through all that. 
 
-    t = trange(len(combos))    
+    t = len(combos)  
     for indx in t:     # block i        
         i,j = combos[indx]
         t.set_description(f"Checking connections block {i} with {j}")

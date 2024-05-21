@@ -105,6 +105,8 @@ class Box:
 
 class AlreadyMeshed(Exception):
     pass
+class DimensionalityError(Exception):
+    pass
 
 class Mesh:
     def __init__(self, name):
@@ -198,15 +200,38 @@ class Mesh:
         if force:
             raise NotImplementedError
         
-        if self.two_dimensional:
-            x = np.zeros(self.ni+1)
-            for i in range(self.ni+1):
-                x[i] = xgrid.s(i)
-                #print('xx', i, x[i])
-            y = np.zeros(self.nj+1)
-            for j in range(self.nj+1):
-                y[j] = ygrid.s(j)
+        x = np.zeros(self.ni+1)
+        for i in range(self.ni+1):
+            x[i] = xgrid.s(i)
+        y = np.zeros(self.nj+1)
+        for j in range(self.nj+1):
+            y[j] = ygrid.s(j)
 
+        if zgrid is not None:
+            # Three dimensions
+            if self.two_dimensional:
+                raise DimensionalityError('z gridding not available for two-dimensional mesh')
+            z = np.zeros(self.nk+1)
+            for k in range(self.nk+1):
+                z[k] = zgrid.s(k)
+                print('zzz', z[k], k)
+            
+            self.x = np.zeros(self.node_count)
+            self.y = np.zeros(self.node_count)
+            self.z = np.zeros(self.node_count)
+
+            k = 0
+            index = 0
+            for k in range(self.nk+1):
+                for j in range(self.nj+1):
+                    for i in range(self.ni+1):
+                        if self.node_index[i, j, k] > 0:
+                            self.x[index] = x[i]
+                            self.y[index] = y[j]
+                            self.z[index] = z[k]
+                            index += 1
+        else:
+            # Two dimensions
             self.x = np.zeros(self.node_count)
             self.y = np.zeros(self.node_count)
 
@@ -218,8 +243,6 @@ class Mesh:
                         self.x[index] = x[i]
                         self.y[index] = y[j]
                         index += 1
-        else:
-            raise NotImplementedError
         
         self._meshed = True
 

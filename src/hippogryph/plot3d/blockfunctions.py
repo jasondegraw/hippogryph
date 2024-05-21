@@ -5,7 +5,6 @@ from itertools import combinations
 import math
 import numpy as np
 from typing import Dict, List
-from tqdm import trange
 from .facefunctions import create_face_from_diagonals, get_outer_faces
 from .block import Block
 from .face import Face
@@ -144,9 +143,9 @@ def block_connection_matrix(blocks:List[Block],outer_faces:List[Dict[str,int]]=[
     n = len(blocks)
     connectivity = np.eye(n,dtype=np.int8)
     combos = list(combinations(range(n),2))    
-    for indx in (pbar:=trange(len(combos))):
+    for indx in range(len(combos)):
         i,j = combos[indx]
-        pbar.set_description(f"Building block to block connectivity matrix: checking {i}")
+        #pbar.set_description(f"Building block to block connectivity matrix: checking {i}")
         b1 = blocks[i]
 
         if len(outer_faces)==0:                     # Get the outerfaces to search

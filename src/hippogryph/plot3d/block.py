@@ -2,7 +2,6 @@
 
 import numpy as np 
 import math 
-from tqdm import trange
 from typing import List
 
 class Block:
@@ -134,7 +133,7 @@ class Block:
         cf = np.zeros(shape=(6,3))
         v = np.zeros(shape=(self.IMAX,self.JMAX,self.KMAX))
         
-        for k in trange(1,self.KMAX,desc='Calculating the volumes'):
+        for k in range(1,self.KMAX):
             for j in range(1,self.JMAX):            
                 for i in range(1,self.IMAX):
                     cf[0,0] = X[i-1,j-1,k-1] + X[i-1,j-1,k] + X[i-1,j,k-1] + X[i-1,j,k]
