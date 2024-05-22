@@ -49,9 +49,13 @@ tee_pts = [[0.0, -0.5], [1.0, -0.5], [2.0, -0.5], [3.0, -0.5], [4.0, -0.5],
            [3.0, 7.5], [4.0, 7.5],
            [3.0, 14.5], [4.0, 14.5]]
 
-def test_bfs(tmpdir):
+channel_pts = [[0.0, -0.5], [0.5, -0.5], [1.0, -0.5], [1.5, -0.5], [2.0, -0.5], [2.5, -0.5], [3.0, -0.5], [3.5, -0.5], [4.0, -0.5],
+               [0.0, 0.0], [0.5, 0.0], [1.0, 0.0], [1.5, 0.0], [2.0, 0.0], [2.5, 0.0], [3.0, 0.0], [3.5, 0.0], [4.0, 0.0],
+               [0.0, 0.5], [0.5, 0.5], [1.0, 0.5], [1.5, 0.5], [2.0, 0.5], [2.5, 0.5], [3.0, 0.5], [3.5, 0.5], [4.0, 0.5],]
+
+def test_bfs_2d(tmpdir):
     mesh = hippogryph.backward_step(1)
-    fullpath = os.path.join(tmpdir,'bfs.exo')
+    fullpath = os.path.join(tmpdir,'bfs2d.exo')
     mesh.write_exodusii(fullpath)
     with exodusii.File(fullpath, mode="r") as exof:
         domain = exof.get_element_block(1)
@@ -62,19 +66,33 @@ def test_bfs(tmpdir):
         conn = exof.get_element_connectivity(1).elem_conn
         assert len(conn) == 68
         
-def test_tee(tmpdir):
+def test_tee_2d(tmpdir):
     mesh = hippogryph.tee_junction(1)
-    fullpath = os.path.join(tmpdir,'tee.exo')
+    fullpath = os.path.join(tmpdir,'tee2d.exo')
     mesh.write_exodusii(fullpath)
     with exodusii.File(fullpath, mode="r") as exof:
         domain = exof.get_element_block(1)
         assert domain.name == 'domain'
         coords = exof.get_coords()
         assert len(coords) == len(tee_pts)
-        print(coords)
         assert np.allclose(coords, tee_pts)
         conn = exof.get_element_connectivity(1).elem_conn
         assert len(conn) == 20
+
+def test_channel_2d(tmpdir):
+    mesh = hippogryph.channel(x=4.0, y=1.0, ni=8, nj=2, nk=0)
+    assert mesh.node_count == 27
+    assert mesh.cell_count == 16
+    fullpath = os.path.join(tmpdir,'chan2d.exo')
+    mesh.write_exodusii(fullpath)
+    with exodusii.File(fullpath, mode="r") as exof:
+        domain = exof.get_element_block(1)
+        assert domain.name == 'domain'
+        coords = exof.get_coords()
+        assert len(coords) == 27
+        assert np.allclose(coords, channel_pts)
+        conn = exof.get_element_connectivity(1).elem_conn
+        assert len(conn) == 16
 
 def test_channel_3d(tmpdir):
     mesh = hippogryph.channel(x=1.0, y=1.0, z=1.0, ni=4, nj=8, nk=2)

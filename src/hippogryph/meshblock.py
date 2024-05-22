@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import numpy as np
 from . import exodusii
+from . import plot3d
 
 class SubBlock:
     def __init__(self, number, i, j, k, ni, nj, nk):
@@ -33,7 +34,7 @@ class Box:
         self.nj = nj
         self.nk = nk
         self.two_dimensional = False
-        if nk is None:
+        if nk is None or nk == 0:
             self.k = 0
             self.nk = 1
             self.two_dimensional = True
@@ -193,6 +194,7 @@ class Mesh:
         else:
             self._primitives.append(primitive)
             self.two_dimensional = primitive.two_dimensional
+        return True
     
     def mesh(self, xgrid, ygrid, zgrid=None, force=False):
         if self._meshed:
@@ -214,7 +216,6 @@ class Mesh:
             z = np.zeros(self.nk+1)
             for k in range(self.nk+1):
                 z[k] = zgrid.s(k)
-                print('zzz', z[k], k)
             
             self.x = np.zeros(self.node_count)
             self.y = np.zeros(self.node_count)
@@ -377,21 +378,13 @@ class Mesh:
             for primitive in self._primitives:
                 self.sidesets[set_name].extend(primitive.sideset(set_name))
                 
-        #print(self.cell_count, self.node_count)
-        #print(len(self.sidesets))
-        #print(self.sidesets)
-        #print(self.ni, self.nj)
         self._indexed = True
     
     def iblank(self) -> np.array:
-        print(self.node_index)
         if not self._indexed:
             self.index()
         ib = np.where(self.node_index>0, 1, 0)
         return ib
-    
-    def write_plot3d(self, filename:str)->bool:
-        return False
 
     def write_exodusii(self, filename:str):
         exo = exodusii.exodusii_file(filename, 'w')
@@ -466,3 +459,12 @@ class Mesh:
             id += 1
 
         exo.close()
+    
+    def write_plot3d(self, filename:str)->bool:
+        # For now, only support one big Plot3D block
+        the_shape = (self.ni+1, self.nj+1, self.nk+1)
+        block = plot3d.Block(np.reshape(self.x, the_shape, order='F'),
+                             np.reshape(self.y, the_shape, order='F'),
+                             np.reshape(self.z, the_shape, order='F'))
+        plot3d.write_plot3D(filename, [block])
+        return True

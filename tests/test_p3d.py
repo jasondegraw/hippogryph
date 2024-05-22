@@ -93,7 +93,7 @@ z = np.array([-0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, 
               0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
               0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
 
-def test_channel3d(tmpdir):
+def test_channel3d_primitive(tmpdir):
     mesh = hippogryph.channel(x=2.0, z=1.0, ni=4, nj=2, nk=2)
     ib = mesh.iblank()
     assert ib.shape == (5, 3, 3)
@@ -109,8 +109,6 @@ def test_channel3d(tmpdir):
     block = hippogryph.plot3d.Block(np.reshape(mesh.x, (5,3,3), order='F'),
                                     np.reshape(mesh.y, (5,3,3), order='F'),
                                     np.reshape(mesh.z, (5,3,3), order='F'))
-    print(np.reshape(mesh.x, (5,3,3), order='F'))
-    print(np.reshape(mesh.x, (5,3,3), order='F')[:,1,0])
     filename = os.path.join(tmpdir, 'out.xyz')
     hippogryph.plot3d.write_plot3D(filename, [block])
     blocks = hippogryph.plot3d.read_plot3D(filename) #, binary:bool=True,big_endian:bool=False,read_double:bool=True):
@@ -121,12 +119,27 @@ def test_channel3d(tmpdir):
     assert np.allclose(np.reshape(blocks[0].X, (45,), order='F'), x)
     assert np.allclose(np.reshape(blocks[0].Y, (45,), order='F'), y)
     assert np.allclose(np.reshape(blocks[0].Z, (45,), order='F'), z)
-    #with exodusii.File(fullpath, mode="r") as exof:
-    #    domain = exof.get_element_block(1)
-    #    assert domain.name == 'domain'
-    #    coords = exof.get_coords()
-    #    assert len(coords) == len(tee_pts)
-    #    print(coords)
-    #    assert np.allclose(coords, tee_pts)
-    #    conn = exof.get_element_connectivity(1).elem_conn
-    #    assert len(conn) == 20
+
+def test_channel3d(tmpdir):
+    mesh = hippogryph.channel(x=2.0, z=1.0, ni=4, nj=2, nk=2)
+    ib = mesh.iblank()
+    assert ib.shape == (5, 3, 3)
+    assert np.allclose(ib, 1)
+    assert mesh.node_count == 45
+    assert mesh.cell_count == 16
+    assert mesh.x.shape == (45,)
+    assert np.allclose(mesh.x, x)
+    assert mesh.y.shape == (45,)
+    assert np.allclose(mesh.y, y)
+    assert mesh.z.shape == (45,)
+    assert np.allclose(mesh.z, z)
+    filename = os.path.join(tmpdir, 'chan.xyz')
+    mesh.write_plot3d(filename)
+    blocks = hippogryph.plot3d.read_plot3D(filename) #, binary:bool=True,big_endian:bool=False,read_double:bool=True):
+    assert len(blocks) == 1
+    assert blocks[0].X.shape == (5,3,3)
+    assert blocks[0].Y.shape == (5,3,3)
+    assert blocks[0].Z.shape == (5,3,3)
+    assert np.allclose(np.reshape(blocks[0].X, (45,), order='F'), x)
+    assert np.allclose(np.reshape(blocks[0].Y, (45,), order='F'), y)
+    assert np.allclose(np.reshape(blocks[0].Z, (45,), order='F'), z)
