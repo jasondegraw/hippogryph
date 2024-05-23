@@ -235,6 +235,7 @@ class Mesh:
             # Two dimensions
             self.x = np.zeros(self.node_count)
             self.y = np.zeros(self.node_count)
+            self.z = None
 
             k = 0
             index = 0
@@ -397,7 +398,7 @@ class Mesh:
             type = 'QUAD'
         exo.put_init(self.name, ndim, self.node_count, self.cell_count,
                      len(self.blocks), 0, len(self.sidesets))
-        exo.put_coord(self.x, self.y)
+        exo.put_coord(self.x, self.y, self.z)
 
         # Write out the blocks
         for nb, block in enumerate(self.blocks):
@@ -432,9 +433,6 @@ class Mesh:
                                 conn.append(cell)
             exo.put_element_conn(block.id, np.array(conn))
 
-        #exo.close()
-        #return
-
         # Write out the sidesets
         id = 1
         for name, subsets in self.sidesets.items():
@@ -459,6 +457,7 @@ class Mesh:
             id += 1
 
         exo.close()
+        return True
     
     def write_plot3d(self, filename:str)->bool:
         # For now, only support one big Plot3D block

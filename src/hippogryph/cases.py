@@ -15,7 +15,13 @@ def channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk:int=
         raise DimensionalityError('Channel grid specifies zero z length but non-zero z-direction cells')
 
     block = Block('domain')
-    box = Box(ni=ni, nj=nj, nk=nk, block=block, left_label='inflow', right_label='outflow')
+    if nk == 0:
+        box = Box(ni=ni, nj=nj, nk=nk, block=block, left_label='inflow', right_label='outflow',
+                  up_label='top_wall', down_label='bottom_wall')
+    else:
+        box = Box(ni=ni, nj=nj, nk=nk, block=block, left_label='inflow', right_label='outflow',
+                  up_label='top_wall', down_label='bottom_wall', front_label='front_wall',
+                  back_label='back_wall')
 
     mesh = Mesh('channel')
     mesh.add(box)

@@ -93,7 +93,7 @@ z = np.array([-0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, 
               0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 
               0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5])
 
-def test_channel3d_primitive(tmpdir):
+def test_channel_3d_primitive(tmpdir):
     mesh = hippogryph.channel(x=2.0, z=1.0, ni=4, nj=2, nk=2)
     ib = mesh.iblank()
     assert ib.shape == (5, 3, 3)
@@ -120,7 +120,7 @@ def test_channel3d_primitive(tmpdir):
     assert np.allclose(np.reshape(blocks[0].Y, (45,), order='F'), y)
     assert np.allclose(np.reshape(blocks[0].Z, (45,), order='F'), z)
 
-def test_channel3d(tmpdir):
+def test_channel_3d(tmpdir):
     mesh = hippogryph.channel(x=2.0, z=1.0, ni=4, nj=2, nk=2)
     ib = mesh.iblank()
     assert ib.shape == (5, 3, 3)
