@@ -42,7 +42,6 @@ class Box:
             self.k = 0
             self.nk = 1
             self.two_dimensional = True
-        #self.two_dimensional = k is None or nk is None
         self.block = block
         self.subsets = {}
         self.front = front_label
@@ -438,19 +437,13 @@ class Mesh:
         for name, subsets in self.sidesets.items():
             elements = []
             sides = []
-            #print(name)
-            #print(self.cell_index.shape)
             for sub in subsets:
-                #print(range(sub.k - self.k_offset, sub.k - self.k_offset + sub.nk))
-                #print(range(sub.j - self.j_offset, sub.j - self.j_offset + sub.nj))
-                #print(range(sub.i - self.i_offset, sub.i - self.i_offset + sub.ni))
                 for k in range(sub.k - self.k_offset, sub.k - self.k_offset + sub.nk):
                     for j in range(sub.j - self.j_offset, sub.j - self.j_offset + sub.nj):
                         for i in range(sub.i - self.i_offset, sub.i - self.i_offset + sub.ni):
                             if self.cell_index[i,j,k] > 0:
                                 elements.append(self.cell_index[i,j,k])
                                 sides.append(sub.number)
-            #print(len(elements))
             exo.put_side_set_param(id, len(elements))
             exo.put_side_set_name(id, name)
             exo.put_side_set_sides(id, elements, sides)
