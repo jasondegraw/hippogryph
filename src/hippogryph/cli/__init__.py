@@ -36,17 +36,18 @@ def guess_output_format(filename: str) -> Format|None:
 @click.option('-j', '--nj', type=click.IntRange(1), show_default=True, default=32)
 @click.option('-k', '--nk', type=click.IntRange(0), show_default=True, default=0)
 @click.option('-o', '--output', type=click.Path(dir_okay=False, writable=True), show_default=True, default='chan.exo', help='Write output to the specified file.')
-@click.option('-f', '--format', type=click.Choice(['exo', 'plot3d', 'plot3d_2d']), default='exo', help='Specify format to use.')
+@click.option('-f', '--format', type=click.Choice(['exo', 'plot3d']), default='exo', help='Specify format to use.')
 @click.option('-a', '--ascii', is_flag=True, show_default=True, default=False, help='Write ASCII format (if possible).')
 def channel(x_length, y_length, z_length, ni, nj, nk, output, format, ascii):
     """
     Generate a channel grid.
     """
+    binary = not ascii
     mesh = hpg.channel(x=x_length, y=y_length, z=z_length, ni=ni, nj=nj, nk=nk)
     if format == 'exo':
         success = mesh.write_exodusii(output)
     elif format == 'plot3d':
-        success = mesh.write_plot3d(output)
+        success = mesh.write_plot3d(output, binary=binary)
     if not success:
         print('Writing output to "%s" failed' % output)
 
@@ -66,14 +67,20 @@ def validate_even_int(ctx: click.core.Context,
 @click.option('-n', '--number', callback=validate_even_int, show_default=True, default=32, help='Number of elements across the channel (must be even).')
 #@click.option('-z', '--z-length', type=click.File('w'), show_default=True, default=1.0, help='Length of the grid in the z direction.')
 @click.option('-o', '--output', type=click.Path(writable=True, dir_okay=False), show_default=True, default='hpg.exo', help='Write output to the specified file.')
-@click.option('-f', '--format', type=click.Choice(['exo', 'plot3d', 'plot3d_2d']), default=None, help='Specify format to use.')
+@click.option('-f', '--format', type=click.Choice(['exo', 'plot3d']), default=None, help='Specify format to use.')
 @click.option('-a', '--ascii', is_flag=True, show_default=True, default=False, help='Write ASCII format (if possible).')
 def bfs(number, output, format, ascii):
     '''
     Generate a backward-facing step grid
     '''
+    binary = not ascii
     mesh = hpg.backward_step(int(number/2.0))
-    mesh.write_exodusii(output)
+    if format == 'exo':
+        success = mesh.write_exodusii(output)
+    elif format == 'plot3d':
+        success = mesh.write_plot3d(output, binary=binary)
+    if not success:
+        print('Writing output to "%s" failed' % output)
 
 
 @click.group(context_settings={'help_option_names': ['-h', '--help']}, invoke_without_command=False)

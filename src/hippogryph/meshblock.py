@@ -452,11 +452,18 @@ class Mesh:
         exo.close()
         return True
     
-    def write_plot3d(self, filename:str)->bool:
+    def write_plot3d(self, filename:str, binary=True)->bool:
         # For now, only support one big Plot3D block
-        the_shape = (self.ni+1, self.nj+1, self.nk+1)
-        block = plot3d.Block(np.reshape(self.x, the_shape, order='F'),
-                             np.reshape(self.y, the_shape, order='F'),
-                             np.reshape(self.z, the_shape, order='F'))
-        plot3d.write_plot3D(filename, [block])
+        if self.two_dimensional:
+            the_shape = (self.ni+1, self.nj+1, 1)
+            block = plot3d.Block(np.reshape(self.x, the_shape, order='F'),
+                                 np.reshape(self.y, the_shape, order='F'),
+                                 None)
+            plot3d.write_plot2D(filename, [block], binary=binary)
+        else:
+            the_shape = (self.ni+1, self.nj+1, self.nk+1)
+            block = plot3d.Block(np.reshape(self.x, the_shape, order='F'),
+                                 np.reshape(self.y, the_shape, order='F'),
+                                 np.reshape(self.z, the_shape, order='F'))
+            plot3d.write_plot3D(filename, [block], binary=binary)
         return True
