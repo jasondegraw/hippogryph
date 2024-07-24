@@ -4,3 +4,4 @@
 from .meshblock import Block, Box, Mesh
 from .grid import vkruh, geometric, geometric_sum, single_sided_geometric, single_sided_vinokur, BadGrid, Uniform, Geometric, Composite, VinokurSingleSided
 from .cases import backward_step, tee_junction, channel
+from .utils import convert_plot3d

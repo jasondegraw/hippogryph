@@ -7,7 +7,7 @@ from .grid import Uniform, Geometric, Composite
 
 def channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk:int=0):
     """
-    
+    Generate a channel grid
     """
     if nk == 0 and z > 0.0:
         raise DimensionalityError('Channel grid specifies zero z-direction cells but non-zero z length')
@@ -40,7 +40,7 @@ def channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk:int=
 
 def backward_step(M:int) -> Mesh:
     """
-    
+    Generate a backward-facing step grid
     """
     N = 2*M
     block = Block('domain')
@@ -62,7 +62,9 @@ def backward_step(M:int) -> Mesh:
     return mesh
 
 def tee_junction(N:int) -> Mesh:
-    
+    """
+    Generate a tee-junction grid
+    """
     # parser.add_argument('-o', '--output', dest='output', action='store',
     #                     default='tjunct.exo', help='name of output Exodus II files to be write')
     # parser.add_argument('-N', '--number', dest='N', action='store',
