@@ -7,7 +7,7 @@ from typing import List
 class Block:
     """Plot3D Block definition
     """
-    def __init__(self, X:np.ndarray,Y:np.ndarray,Z:np.ndarray):
+    def __init__(self, X:np.ndarray,Y:np.ndarray,Z:np.ndarray|None):
         """Initializes the block using all the X,Y,Z coordinates of the block
 
         Args:
@@ -20,10 +20,14 @@ class Block:
         self.X = X
         self.Y = Y
         self.Z = Z
+        self.three_dimensional = True
+        if Z is None:
+            self.three_dimensional = False
+            self.Z = np.zeros(X.shape, X.dtype)
         # Centroid 
         self.cx = np.mean(X) 
         self.cy = np.mean(Y)
-        self.cz = np.mean(Z)
+        self.cz = np.mean(self.Z)
         
     
     def scale(self,factor:float):

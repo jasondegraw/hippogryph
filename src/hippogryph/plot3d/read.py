@@ -124,4 +124,58 @@ def read_plot3D(filename:str, binary:bool=True,big_endian:bool=False,read_double
                     blocks.append(b_temp)
     return blocks
 
+def read_plot2D(filename:str, binary:bool=True,big_endian:bool=False,read_double:bool=True):
+    """Reads a plot2d file and returns Blocks
+
+    Args:
+        filename (str): name of the file to read, .p3d, .xyz, .pdc, .plot3d? 
+        binary (bool, optional): indicates if the file is binary. Defaults to True.
+        big_endian (bool, optional): use big endian format for reading binary files
+        read_float (bool, optional): read floating point. Only affects binary files
+
+    Returns:
+        List[Block]: List of blocks insdie the plot3d file
+    """
+    
+    blocks = list()
+    if osp.isfile(filename):
+        if binary:
+            with open(filename,'rb') as f:
+                nblocks = struct.unpack(">I",f.read(4))[0] if big_endian else struct.unpack("I",f.read(4))[0] # Read bytes            
+                IMAX = list(); JMAX = list(); KMAX = list()
+                for b in range(nblocks):
+                    if big_endian:
+                        IMAX.append(struct.unpack(">I",f.read(4))[0]) # Read bytes
+                        JMAX.append(struct.unpack(">I",f.read(4))[0]) # Read bytes
+                    else:
+                        IMAX.append(struct.unpack("I",f.read(4))[0]) # Read bytes
+                        JMAX.append(struct.unpack("I",f.read(4))[0]) # Read bytes
+                    KMAX.append(1)
+
+                for b in range(nblocks):
+                    X = __read_plot3D_chunk_binary(f,IMAX[b],JMAX[b],KMAX[b], big_endian,read_double)
+                    Y = __read_plot3D_chunk_binary(f,IMAX[b],JMAX[b],KMAX[b], big_endian,read_double)
+                    Z = None
+                    b_temp = Block(X,Y,Z)                    
+                    blocks.append(b_temp)
+        else:
+            with open(filename,'r') as f: 
+                nblocks = int(f.readline())
+                IMAX = list(); JMAX = list(); KMAX = list()
+                
+                for b in range(nblocks):
+                    IJK = f.readline().replace('\n','').split(' ')
+                    tokens = [int(w) for w in IJK if w]
+                    IMAX.append(tokens[0])
+                    JMAX.append(tokens[1])
+                    KMAX.append(1)
+
+                for b in range(nblocks):
+                    X = __read_plot3D_chunk_ASCII(f,IMAX[b],JMAX[b],KMAX[b])
+                    Y = __read_plot3D_chunk_ASCII(f,IMAX[b],JMAX[b],KMAX[b])
+                    Z = None
+                    b_temp = Block(X,Y,Z)                    
+                    blocks.append(b_temp)
+    return blocks
+
 
