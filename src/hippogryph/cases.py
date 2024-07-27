@@ -2,10 +2,10 @@
 # SPDX-FileCopyrightText: 2023-present Oak Ridge National Laboratory, managed by UT-Battelle
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from .meshblock import Block, Box, Mesh, DimensionalityError
+from .meshblock import Mesh, Box, Block, DimensionalityError, ElementSet
 from .grid import Uniform, Geometric, Composite
 
-def channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk:int=0):
+def channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk:int=0) -> Block:
     """
     Generate a channel grid
     """
@@ -14,54 +14,53 @@ def channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk:int=
     if nk > 0 and  z == 0.0:
         raise DimensionalityError('Channel grid specifies zero z length but non-zero z-direction cells')
 
-    block = Block('domain')
+    mesh = Mesh('channel')
     if nk == 0:
-        box = Box(ni=ni, nj=nj, nk=nk, block=block, left_label='inflow', right_label='outflow',
+        box = Box(ni=ni, nj=nj, nk=nk, element_set='domain', left_label='inflow', right_label='outflow',
                   up_label='top_wall', down_label='bottom_wall')
     else:
-        box = Box(ni=ni, nj=nj, nk=nk, block=block, left_label='inflow', right_label='outflow',
+        box = Box(ni=ni, nj=nj, nk=nk, element_set='domain', left_label='inflow', right_label='outflow',
                   up_label='top_wall', down_label='bottom_wall', front_label='front_wall',
                   back_label='back_wall')
 
-    mesh = Mesh('channel')
-    mesh.add(box)
+    block = mesh.new_block(box)
 
-    mesh.index()
+    block.index()
 
-    xgrid = Uniform.from_intervals(x, mesh.ni)
-    ygrid = Uniform.from_intervals(y, mesh.nj, shift=-0.5*y)
+    xgrid = Uniform.from_intervals(x, block.ni)
+    ygrid = Uniform.from_intervals(y, block.nj, shift=-0.5*y)
     zgrid = None
     if nk != 0:
-        zgrid = Uniform.from_intervals(z, mesh.nk, shift=-0.5*z)
+        zgrid = Uniform.from_intervals(z, block.nk, shift=-0.5*z)
 
-    mesh.mesh(xgrid=xgrid, ygrid=ygrid, zgrid=zgrid)
+    block.mesh(xgrid=xgrid, ygrid=ygrid, zgrid=zgrid)
 
     return mesh
 
-def backward_step(M:int) -> Mesh:
+def backward_step(M:int) -> Block:
     """
     Generate a backward-facing step grid
     """
+    mesh = Mesh('channel')
     N = 2*M
-    block = Block('domain')
-    boxN = Box(ni=17*N, nj=M, block=block, left_label='inflow', right_label='outflow',
+    boxN = Box(ni=17*N, nj=M, element_set='domain', left_label='inflow', right_label='outflow',
                up_label='north')
-    boxS = Box(ni=17*N, nj=M, block=block, left_label='south', right_label='outflow',
+    boxS = Box(ni=17*N, nj=M, element_set='domain', left_label='south', right_label='outflow',
                down_label='south')
-    mesh = Mesh.from_array('BFS', [boxS, boxN], shape=(1,2))
+    block = mesh.block_from_array('block-1', [boxS, boxN], shape=(1,2))
 
     mesh.index()
 
-    ygrid = Uniform.from_intervals(1.0, mesh.nj, shift=-0.75)
+    ygrid = Uniform.from_intervals(1.0, block.nj, shift=-0.75)
     xunif = Uniform.from_delta(ygrid.delta, 16*N)
     xstretch = Geometric.from_delta(xunif.delta, 16, N)
     xgrid = Composite([xunif, xstretch])
 
-    mesh.mesh(xgrid=xgrid, ygrid=ygrid)
+    block.mesh(xgrid=xgrid, ygrid=ygrid)
 
     return mesh
 
-def tee_junction(N:int) -> Mesh:
+def tee_junction(N:int) -> Block:
     """
     Generate a tee-junction grid
     """
@@ -86,25 +85,26 @@ def tee_junction(N:int) -> Mesh:
 
     half = int(0.5 * branch_div_H)
 
-    block = Block('domain')
-    inlet = Box(ni=inlet_div_H*N, nj=N, block=block, left_label='inflow',
+    mesh = Mesh('T-junction')
+
+    eblock = mesh.new_element_set('domain')
+    inlet = Box(ni=inlet_div_H*N, nj=N, element_set=eblock, left_label='inflow',
                 up_label='inlet_north', down_label='south')
-    junction = Box(ni=N, nj=N, block=block, down_label='south')
-    main0 = Box(ni=half*N, nj=N, block=block, down_label='south',
+    junction = Box(ni=N, nj=N, element_set=eblock, down_label='south')
+    main0 = Box(ni=half*N, nj=N, element_set=eblock, down_label='south',
                 up_label='main_north')
-    main1 = Box(ni=N, nj=N, block=block, down_label='south',
+    main1 = Box(ni=N, nj=N, element_set=eblock, down_label='south',
                 right_label='east_outflow', up_label='main_north')
-    branch0 = Box(ni=N, nj=half*N, block=block, left_label='branch_west',
+    branch0 = Box(ni=N, nj=half*N, element_set=eblock, left_label='branch_west',
                   right_label='branch_east')
-    branch1 = Box(ni=N, nj=N, block=block, left_label='branch_west',
+    branch1 = Box(ni=N, nj=N, element_set=eblock, left_label='branch_west',
                   right_label='branch_east', up_label='north_outflow')
 
-    mesh = Mesh.from_array('T-junction',
-                           [inlet, junction, main0, main1,
-                            None, branch0, None, None,
-                            None, branch1, None, None], shape=(4,3))
+    block = mesh.block_from_array('block-1', [inlet, junction, main0, main1,
+                                              None, branch0, None, None,
+                                              None, branch1, None, None], shape=(4,3))
 
-    mesh.index()
+    block.index()
 
     delta = H/N
     xunif = Uniform.from_delta(delta, inlet.ni + junction.ni + main0.ni)
@@ -114,6 +114,6 @@ def tee_junction(N:int) -> Mesh:
     ystretch = Geometric.from_delta(yunif.delta, 7*H, branch1.ni)
     ygrid = Composite([yunif, ystretch])
 
-    mesh.mesh(xgrid=xgrid, ygrid=ygrid)
+    block.mesh(xgrid=xgrid, ygrid=ygrid)
 
     return mesh

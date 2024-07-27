@@ -34,7 +34,8 @@ pts = [[0.0, -0.75], [0.5, -0.75], [1.0, -0.75], [1.5, -0.75], [2.0, -0.75],
 
 def test_bfs(tmpdir):
     mesh = hippogryph.backward_step(1)
-    ib = mesh.iblank()
+    assert len(mesh.blocks) == 1
+    ib = mesh.blocks[0].iblank()
     assert ib.shape == (35,3,1)
     np.testing.assert_array_equal(ib, 1)
     #fullpath = os.path.join(tmpdir,'bfs.exo')
@@ -66,7 +67,8 @@ tee_ib_3 = np.expand_dims(tee_ib_2, axis=2)
 
 def test_tee(tmpdir):
     mesh = hippogryph.tee_junction(1)
-    ib = mesh.iblank()
+    assert len(mesh.blocks) == 1
+    ib = mesh.blocks[0].iblank()
     assert ib.shape == (13,10,1)
     assert tee_ib_3.shape == (13,10,1)
     np.testing.assert_array_equal(ib, tee_ib_3)
@@ -95,20 +97,21 @@ z = np.array([-0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, -0.5, 
 
 def test_channel_3d_primitive(tmpdir):
     mesh = hippogryph.channel(x=2.0, z=1.0, ni=4, nj=2, nk=2)
-    ib = mesh.iblank()
+    assert len(mesh.blocks) == 1
+    ib = mesh.blocks[0].iblank()
     assert ib.shape == (5, 3, 3)
     assert np.allclose(ib, 1)
     assert mesh.node_count == 45
     assert mesh.cell_count == 16
-    assert mesh.x.shape == (45,)
-    assert np.allclose(mesh.x, x)
-    assert mesh.y.shape == (45,)
-    assert np.allclose(mesh.y, y)
-    assert mesh.z.shape == (45,)
-    assert np.allclose(mesh.z, z)
-    block = hippogryph.plot3d.Block(np.reshape(mesh.x, (5,3,3), order='F'),
-                                    np.reshape(mesh.y, (5,3,3), order='F'),
-                                    np.reshape(mesh.z, (5,3,3), order='F'))
+    assert mesh.blocks[0].x.shape == (45,)
+    assert np.allclose(mesh.blocks[0].x, x)
+    assert mesh.blocks[0].y.shape == (45,)
+    assert np.allclose(mesh.blocks[0].y, y)
+    assert mesh.blocks[0].z.shape == (45,)
+    assert np.allclose(mesh.blocks[0].z, z)
+    block = hippogryph.plot3d.Block(np.reshape(mesh.blocks[0].x, (5,3,3), order='F'),
+                                    np.reshape(mesh.blocks[0].y, (5,3,3), order='F'),
+                                    np.reshape(mesh.blocks[0].z, (5,3,3), order='F'))
     filename = os.path.join(tmpdir, 'out.xyz')
     hippogryph.plot3d.write_plot3D(filename, [block])
     blocks = hippogryph.plot3d.read_plot3D(filename) #, binary:bool=True,big_endian:bool=False,read_double:bool=True):
@@ -122,17 +125,18 @@ def test_channel_3d_primitive(tmpdir):
 
 def test_channel_3d(tmpdir):
     mesh = hippogryph.channel(x=2.0, z=1.0, ni=4, nj=2, nk=2)
-    ib = mesh.iblank()
+    assert len(mesh.blocks) == 1
+    ib = mesh.blocks[0].iblank()
     assert ib.shape == (5, 3, 3)
     assert np.allclose(ib, 1)
     assert mesh.node_count == 45
     assert mesh.cell_count == 16
-    assert mesh.x.shape == (45,)
-    assert np.allclose(mesh.x, x)
-    assert mesh.y.shape == (45,)
-    assert np.allclose(mesh.y, y)
-    assert mesh.z.shape == (45,)
-    assert np.allclose(mesh.z, z)
+    assert mesh.blocks[0].x.shape == (45,)
+    assert np.allclose(mesh.blocks[0].x, x)
+    assert mesh.blocks[0].y.shape == (45,)
+    assert np.allclose(mesh.blocks[0].y, y)
+    assert mesh.blocks[0].z.shape == (45,)
+    assert np.allclose(mesh.blocks[0].z, z)
     filename = os.path.join(tmpdir, 'chan.xyz')
     mesh.write_plot3d(filename)
     blocks = hippogryph.plot3d.read_plot3D(filename) #, binary:bool=True,big_endian:bool=False,read_double:bool=True):

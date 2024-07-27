@@ -55,6 +55,7 @@ channel_pts = [[0.0, -0.5], [0.5, -0.5], [1.0, -0.5], [1.5, -0.5], [2.0, -0.5], 
 
 def test_bfs_2d(tmpdir):
     mesh = hippogryph.backward_step(1)
+    assert len(mesh.blocks) == 1
     fullpath = os.path.join(tmpdir,'bfs2d.exo')
     mesh.write_exodusii(fullpath)
     with exodusii.File(fullpath, mode="r") as exof:
