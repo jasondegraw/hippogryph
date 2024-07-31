@@ -49,6 +49,45 @@ class ElementSet:
         self.element_count = 0
 
 class Box:
+    """A primitive that selects an box-shaped area for meshing.
+    
+    The most basic primitive, this object selects a box shaped area for meshing and associates it
+    with an element set. 
+
+    Parameters
+    ----------
+    i: optional
+        The i-direction origin of the box, defaults to 0.
+    j: optional
+        The j-direction origin of the box, defaults to 0.
+    k: optional
+        The k-direction origin of the box, defaults to None for a two-dimensional box.
+    ni: optional
+        The number of i-direction intervals, defaults to 1.
+    nj: optional
+        The number of j direction intervals, defaults to 1.
+    nk: optional
+        The number of k-direction intervals, defaults to None for a two-dimensional box.
+    name: optional
+        The name of the box.
+    element_set: optional
+        The name of an element set to associate with, an element set object to be associated with, or None.
+    back_label: optional
+        The name of the side set to be created on the k boundary of the box. Defaults to None.
+    left_label: optional
+        The name of the side set to be created on the i boundary of the box. Defaults to None.
+    right_label: optional
+        The name of the side set to be created on the i+ni boundary of the box. Defaults to None.
+    up_label: optional
+        The name of the side set to be created on the j+nj boundary of the box. Defaults to None.
+    down_label: optional
+        The name of the side set to be created on the j boundary of the box. Defaults to None.
+
+    Notes
+    -----
+    Giving more than one of the label parameters the same name will result in a combined sideset. For example,
+    if down_label and right_label are the same, the eventual output sideset will include both of those boundaries.
+    """
     def __init__(self, i:int=0, j:int=0, k:int=0, ni:int=1, nj:int=1, nk:int|None=None, name:str|None=None, 
                  element_set:ElementSet|str|None=None, front_label:str|None=None, back_label:str|None=None,
                  left_label:str|None=None, right_label:str|None=None, up_label:str|None=None,
@@ -70,49 +109,80 @@ class Box:
             self.nk = 1
             self.two_dimensional = True
         self.element_set = element_set
-        self.subsets = {}
+        #self.subsets = {}
         self.front = front_label
-        if self.front:
-            self.add_to_subsets(self.front, 
-                                SideSet(6, self.i, self.j, self.k+self.nk, self.ni, self.nj, 1))
+        #if self.front:
+        #    self.add_to_subsets(self.front, 
+        #                        SideSet(6, self.i, self.j, self.k+self.nk, self.ni, self.nj, 1))
         self.back = back_label
-        if self.back:
-            self.add_to_subsets(self.back, 
-                                SideSet(5, self.i, self.j, self.k, self.ni, self.nj, 1))
+        #if self.back:
+        #    self.add_to_subsets(self.back, 
+        #                        SideSet(5, self.i, self.j, self.k, self.ni, self.nj, 1))
         self.left = left_label
-        if self.left:
-            self.add_to_subsets(self.left,
-                                SideSet(4, self.i, self.j, self.k, 1, self.nj, self.nk))
+        #if self.left:
+        #    self.add_to_subsets(self.left,
+        #                        SideSet(4, self.i, self.j, self.k, 1, self.nj, self.nk))
         self.right = right_label
-        if self.right:
-            self.add_to_subsets(self.right, 
-                                SideSet(2, self.i+self.ni, self.j, self.k, 1, self.nj, self.nk))
+        #if self.right:
+        #    self.add_to_subsets(self.right, 
+        #                        SideSet(2, self.i+self.ni, self.j, self.k, 1, self.nj, self.nk))
         self.up = up_label
-        if self.up:
-            self.add_to_subsets(self.up,
-                                SideSet(3, self.i, self.j + self.nj, self.k, self.ni, 1, self.nk))
+        #if self.up:
+        #    self.add_to_subsets(self.up,
+        #                        SideSet(3, self.i, self.j + self.nj, self.k, self.ni, 1, self.nk))
         self.down = down_label
-        if self.down:
-            self.add_to_subsets(self.down,
-                                SideSet(1, self.i, self.j, self.k, self.ni, 1, self.nk))
+        #if self.down:
+        #    self.add_to_subsets(self.down,
+        #                        SideSet(1, self.i, self.j, self.k, self.ni, 1, self.nk))
             
         names = [self.down, self.right, self.up, self.left, self.back, self.front]
         numbers = [1, 2, 3, 4, 5, 6]
         self._sidesets = [(label, number) for label, number in zip(names, numbers) if label is not None]
 
-    def add_to_subsets(self, name, obj):
-        if name in self.subsets:
-            self.subsets[name].append(obj)
-        else:
-            self.subsets[name] = [obj]
+    #def add_to_subsets(self, name, obj):
+    #    if name in self.subsets:
+    #        self.subsets[name].append(obj)
+    #    else:
+    #        self.subsets[name] = [obj]
 
-    def footprint(self):
+    def footprint(self)->np.ndarray[np.uint8]:
+        """Return a footprint array of 1s and 0s.
+        
+        This method returns an array of the correct shape for this primitive with each active node
+        marked with a 1.
+        
+        Returns
+        -------
+        np.ndarray:
+            The footprint array.
+        """
         return np.ones((self.ni, self.nj, self.nk), dtype=np.uint8)
     
-    def sidesets(self):
+    def sidesets(self)->list[str]:
+        """Returns the names of all of the sidesets.
+        
+        Returns
+        -------
+        list[str]
+            The list of sideset names.
+        """
         return [el[0] for el in self._sidesets]
     
-    def sideset(self, name):
+    def sideset(self, name:str)->list[SideSet]:
+        """Return the named sideset.
+        
+        This method will return a list of SideSet objects that are grouped under the given name.
+
+        Parameters
+        ----------
+        name:
+            The name of the sidesets to return.
+        
+        Returns
+        -------
+        list[SideSet]:
+            The list of SideSet objects that have the given name.
+        """
         numbers = [el[1] for el in self._sidesets if el[0] == name]
         results = []
         for number in numbers:
@@ -146,7 +216,8 @@ class Block:
     This object corresponds to the Plot3D notion of a block in that it defines either
     x,y or x,y,z coordinates in 2 or 3 dimensions in terms of 2 or 3 dimensional arrays.
     When initially created, it has no defined extents. Primitives are used to fill out
-    the size of the arrays, and grids are applied to determine the coordinates.
+    the size of the arrays and which coordinates will be meshed, and grids are applied
+    to determine the coordinates.
 
     Parameters
     ----------
@@ -161,10 +232,24 @@ class Block:
         self._indexed = False
 
     @classmethod
-    def from_array(cls, name:str, array:list[Box], shape=None): # rework this with Numpy or something
-        """Create a Block from an array of primitives.
+    def from_list(cls, name:str, array:list[Box], shape=None): # rework this with Numpy or something
+        """Create a Block from a list of primitives.
         
-        Take a 1-D array of primitives... 
+        A class method that takes a list of primitives and creates a block from it. Currently only supports two dimensions.
+
+        Parameters
+        ----------
+        name:
+            The name of the block to create.
+        array:
+            The list of primitives to use.
+        shape:
+            The shape to use.  Passing None will cause the array to be treated as one-dimensional.
+
+        Returns
+        -------
+        Block:
+            The block created by arranging the primitives according to the shape.
         
         """
         primitives = []
@@ -233,6 +318,10 @@ class Block:
         return self._primitives
     
     def add(self, primitive:Box):
+        """Add a primitive to a Block.
+        
+        Add a primitive to a Block
+        """
         if self._primitives:
             if primitive.two_dimensional == self.two_dimensional:
                 self._primitives.append(primitive)
@@ -244,6 +333,24 @@ class Block:
         return True
     
     def mesh(self, xgrid, ygrid, zgrid=None): #, force=False):
+        """Mesh a block with the given grids.
+        
+        Apply the x, y, and maybe z grid to a block, setting the coordinate locations.
+        
+        Parameters
+        ----------
+        xgrid:
+            The x-direction grid.
+        ygrid:
+            The y-direction grid.
+        zgrid: optional
+            The z-direction grid, only required for three dimensional blocks.
+            
+        Raises
+        ------
+        AlreadyMeshed
+            If the block is already meshed.
+        """
         if self._meshed:
             raise AlreadyMeshed('Mesh "{self.name}" is already meshed')
         #if force:
@@ -296,6 +403,15 @@ class Block:
         self._meshed = True
 
     def index(self): #, force=False):
+        """Apply indices to the block based on primitives.
+        
+        Apply each of the primitives in mesh and determine the extents of the mesh.
+        
+        Raises
+        ------
+        AlreadyMeshed:
+            If the block is already meshed.
+        """
         if self._meshed:
             raise AlreadyMeshed('Mesh "{self.name}" is already meshed')
         #if force:
@@ -585,10 +701,24 @@ class Mesh:
             count += block.cell_count
         return count
     
-    def block_from_array(self, name:str, array:list[Box], shape=None)->Block:
-        """Create a Block from an array of primitives.
+    def block_from_list(self, name:str, array:list[Box], shape:tuple[int,int]|None=None)->Block:
+        """Create a Block from a list of primitives.
         
-        Take an array of primitives...
+        Take a list of primitives and create a block from it. Currently only supports two dimensions.
+
+        Parameters
+        ----------
+        name:
+            The name of the block to create.
+        array:
+            The list of primitives to use.
+        shape:
+            The shape to use.  Passing None will cause the array to be treated as one-dimensional.
+
+        Returns
+        -------
+        Block:
+            The block created by arranging the primitives according to the shape.
         
         """
         for primitive in array:
@@ -604,7 +734,7 @@ class Mesh:
                     primitive.element_set = self.element_sets[primitive.element_set]
                 else:
                     primitive.element_set = self.new_element_set(primitive.element_set)
-        block = Block.from_array(name, array, shape=shape)
+        block = Block.from_list(name, array, shape=shape)
         block.id = len(self.blocks) + 1
         self.blocks.append(block)
         return block
@@ -617,4 +747,21 @@ class Mesh:
     
     def index(self):
         for block in self.blocks:
+            # Handle the element sets
+            for primitive in block.primitives:
+                if primitive.element_set is None:
+                    es_name = 'element_set_%d' % (len(self.element_sets) + 1)
+                    if primitive.name is not None:
+                        es_name = 'element_set_' + primitive.name
+                    primitive.element_set = self.new_element_set(es_name)
+                elif isinstance(primitive.element_set, str):
+                    if primitive.element_set in self.element_sets:
+                        primitive.element_set = self.element_sets[primitive.element_set]
+                    else:
+                        primitive.element_set = self.new_element_set(primitive.element_set)
+            # Set up the block indices
             block.index()
+
+    def mesh(self):
+        for block in self.blocks:
+            block.mesh()

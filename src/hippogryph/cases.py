@@ -2,7 +2,7 @@
 # SPDX-FileCopyrightText: 2023-present Oak Ridge National Laboratory, managed by UT-Battelle
 #
 # SPDX-License-Identifier: BSD-3-Clause
-from .meshblock import Mesh, Box, Block, DimensionalityError, ElementSet
+from .meshblock import Mesh, Box, Block, DimensionalityError
 from .grid import Uniform, Geometric, Composite
 
 def channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk:int=0) -> Block:
@@ -47,7 +47,7 @@ def backward_step(M:int) -> Block:
                up_label='north')
     boxS = Box(ni=17*N, nj=M, element_set='domain', left_label='south', right_label='outflow',
                down_label='south')
-    block = mesh.block_from_array('block-1', [boxS, boxN], shape=(1,2))
+    block = mesh.block_from_list('block-1', [boxS, boxN], shape=(1,2))
 
     mesh.index()
 
@@ -100,9 +100,9 @@ def tee_junction(N:int) -> Block:
     branch1 = Box(ni=N, nj=N, element_set=eblock, left_label='branch_west',
                   right_label='branch_east', up_label='north_outflow')
 
-    block = mesh.block_from_array('block-1', [inlet, junction, main0, main1,
-                                              None, branch0, None, None,
-                                              None, branch1, None, None], shape=(4,3))
+    block = mesh.block_from_list('block-1', [inlet, junction, main0, main1,
+                                             None, branch0, None, None,
+                                             None, branch1, None, None], shape=(4,3))
 
     block.index()
 
