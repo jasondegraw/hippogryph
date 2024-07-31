@@ -4,9 +4,23 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import numpy as np
 from . import exodusii
+from . import plot3d
 
-class SubBlock:
-    def __init__(self, number, i, j, k, ni, nj, nk):
+class SideSet:
+    """An object representing the Exodus II side set.
+    
+    This object specifies a range of elements and the side number that makes up an Exodus II side set.
+
+    Parameters
+    ----------
+    number:
+        The Exodus II side number.
+    i,j,k:
+        The origin of the side set.
+    ni,nj,nkL
+        The extents of the side set. One of these should be 1.
+    """
+    def __init__(self, number:int, i:int, j:int, k:int, ni:int, nj:int, nk:int):
         self.number = number
         self.i = i
         self.j = j
@@ -15,16 +29,69 @@ class SubBlock:
         self.nj = nj
         self.nk = nk
 
-class Block:
+class ElementSet:
+    """A named grouping of elements.
+
+    This object (not to be confused with Block) allows elements to be grouped together,
+    corresponds to the Exodus II block.
+
+    Parameters
+    ----------
+    name:
+        The name of the element block.
+
+    id: optional
+        The Exodus II id of the block, defaults to 1.
+    """
     def __init__(self, name: str, id: int = 1):
         self.name = name
         self.id = id
         self.element_count = 0
 
 class Box:
-    def __init__(self, i=0, j=0, k=0, ni=1, nj=1, nk=None, name=None, block=None,
-                 front_label=None, back_label=None, left_label=None, right_label=None,
-                 up_label=None, down_label=None):
+    """A primitive that selects an box-shaped area for meshing.
+    
+    The most basic primitive, this object selects a box shaped area for meshing and associates it
+    with an element set. 
+
+    Parameters
+    ----------
+    i: optional
+        The i-direction origin of the box, defaults to 0.
+    j: optional
+        The j-direction origin of the box, defaults to 0.
+    k: optional
+        The k-direction origin of the box, defaults to None for a two-dimensional box.
+    ni: optional
+        The number of i-direction intervals, defaults to 1.
+    nj: optional
+        The number of j direction intervals, defaults to 1.
+    nk: optional
+        The number of k-direction intervals, defaults to None for a two-dimensional box.
+    name: optional
+        The name of the box.
+    element_set: optional
+        The name of an element set to associate with, an element set object to be associated with, or None.
+    back_label: optional
+        The name of the side set to be created on the k boundary of the box. Defaults to None.
+    left_label: optional
+        The name of the side set to be created on the i boundary of the box. Defaults to None.
+    right_label: optional
+        The name of the side set to be created on the i+ni boundary of the box. Defaults to None.
+    up_label: optional
+        The name of the side set to be created on the j+nj boundary of the box. Defaults to None.
+    down_label: optional
+        The name of the side set to be created on the j boundary of the box. Defaults to None.
+
+    Notes
+    -----
+    Giving more than one of the label parameters the same name will result in a combined sideset. For example,
+    if down_label and right_label are the same, the eventual output sideset will include both of those boundaries.
+    """
+    def __init__(self, i:int=0, j:int=0, k:int=0, ni:int=1, nj:int=1, nk:int|None=None, name:str|None=None, 
+                 element_set:ElementSet|str|None=None, front_label:str|None=None, back_label:str|None=None,
+                 left_label:str|None=None, right_label:str|None=None, up_label:str|None=None,
+                 down_label:str|None=None):
         self.name = name
         self.i = i
         self.j = j
@@ -32,7 +99,8 @@ class Box:
         self.ni = ni
         self.nj = nj
         self.nk = nk
-        if nk is None:
+        self.two_dimensional = False
+        if nk is None or nk == 0:
             self.k = 0
             self.nk = 1
             self.two_dimensional = True
@@ -40,73 +108,123 @@ class Box:
             self.k = 0
             self.nk = 1
             self.two_dimensional = True
-        #self.two_dimensional = k is None or nk is None
-        self.block = block
-        self.subsets = {}
+        self.element_set = element_set
+        #self.subsets = {}
         self.front = front_label
-        if self.front:
-            self.add_to_subsets(self.front, 
-                                SubBlock(6, self.i, self.j, self.k+self.nk, self.ni, self.nj, 1))
+        #if self.front:
+        #    self.add_to_subsets(self.front, 
+        #                        SideSet(6, self.i, self.j, self.k+self.nk, self.ni, self.nj, 1))
         self.back = back_label
-        if self.back:
-            self.add_to_subsets(self.back, 
-                                SubBlock(5, self.i, self.j, self.k, self.ni, self.nj, 1))
+        #if self.back:
+        #    self.add_to_subsets(self.back, 
+        #                        SideSet(5, self.i, self.j, self.k, self.ni, self.nj, 1))
         self.left = left_label
-        if self.left:
-            self.add_to_subsets(self.left,
-                                SubBlock(4, self.i, self.j, self.k, 1, self.nj, self.nk))
+        #if self.left:
+        #    self.add_to_subsets(self.left,
+        #                        SideSet(4, self.i, self.j, self.k, 1, self.nj, self.nk))
         self.right = right_label
-        if self.right:
-            self.add_to_subsets(self.right, 
-                                SubBlock(2, self.i+self.ni, self.j, self.k, 1, self.nj, self.nk))
+        #if self.right:
+        #    self.add_to_subsets(self.right, 
+        #                        SideSet(2, self.i+self.ni, self.j, self.k, 1, self.nj, self.nk))
         self.up = up_label
-        if self.up:
-            self.add_to_subsets(self.up,
-                                SubBlock(3, self.i, self.j + self.nj, self.k, self.ni, 1, self.nk))
+        #if self.up:
+        #    self.add_to_subsets(self.up,
+        #                        SideSet(3, self.i, self.j + self.nj, self.k, self.ni, 1, self.nk))
         self.down = down_label
-        if self.down:
-            self.add_to_subsets(self.down,
-                                SubBlock(1, self.i, self.j, self.k, self.ni, 1, self.nk))
+        #if self.down:
+        #    self.add_to_subsets(self.down,
+        #                        SideSet(1, self.i, self.j, self.k, self.ni, 1, self.nk))
             
         names = [self.down, self.right, self.up, self.left, self.back, self.front]
         numbers = [1, 2, 3, 4, 5, 6]
         self._sidesets = [(label, number) for label, number in zip(names, numbers) if label is not None]
 
-    def add_to_subsets(self, name, obj):
-        if name in self.subsets:
-            self.subsets[name].append(obj)
-        else:
-            self.subsets[name] = [obj]
+    #def add_to_subsets(self, name, obj):
+    #    if name in self.subsets:
+    #        self.subsets[name].append(obj)
+    #    else:
+    #        self.subsets[name] = [obj]
 
-    def footprint(self):
+    def footprint(self)->np.ndarray[np.uint8]:
+        """Return a footprint array of 1s and 0s.
+        
+        This method returns an array of the correct shape for this primitive with each active node
+        marked with a 1.
+        
+        Returns
+        -------
+        np.ndarray:
+            The footprint array.
+        """
         return np.ones((self.ni, self.nj, self.nk), dtype=np.uint8)
     
-    def sidesets(self):
+    def sidesets(self)->list[str]:
+        """Returns the names of all of the sidesets.
+        
+        Returns
+        -------
+        list[str]
+            The list of sideset names.
+        """
         return [el[0] for el in self._sidesets]
     
-    def sideset(self, name):
+    def sideset(self, name:str)->list[SideSet]:
+        """Return the named sideset.
+        
+        This method will return a list of SideSet objects that are grouped under the given name.
+
+        Parameters
+        ----------
+        name:
+            The name of the sidesets to return.
+        
+        Returns
+        -------
+        list[SideSet]:
+            The list of SideSet objects that have the given name.
+        """
         numbers = [el[1] for el in self._sidesets if el[0] == name]
         results = []
         for number in numbers:
             if number == 1:
-                results.append(SubBlock(1, self.i, self.j, self.k, self.ni, 1, self.nk))
+                results.append(SideSet(1, self.i, self.j, self.k, self.ni, 1, self.nk))
             elif number == 2:
-                results.append(SubBlock(2, self.i + self.ni - 1, self.j, self.k, 1, self.nj, self.nk))
+                results.append(SideSet(2, self.i + self.ni - 1, self.j, self.k, 1, self.nj, self.nk))
             elif number == 3:
-                results.append(SubBlock(3, self.i, self.j + self.nj - 1, self.k, self.ni, 1, self.nk))
+                results.append(SideSet(3, self.i, self.j + self.nj - 1, self.k, self.ni, 1, self.nk))
             elif number == 4:
-                results.append(SubBlock(4, self.i, self.j, self.k, 1, self.nj, self.nk))
+                results.append(SideSet(4, self.i, self.j, self.k, 1, self.nj, self.nk))
             elif number == 5:
-                results.append(SubBlock(5, self.i, self.j, self.k, self.ni, self.nj, 1))
+                results.append(SideSet(5, self.i, self.j, self.k, self.ni, self.nj, 1))
             else:
-                results.append(SubBlock(6, self.i, self.j, self.k + self.nk - 1, self.ni, self.nj, 1))
+                results.append(SideSet(6, self.i, self.j, self.k + self.nk - 1, self.ni, self.nj, 1))
         return results
 
 class AlreadyMeshed(Exception):
+    """Raised if a mesh object has already been meshed."""
+    pass
+class DimensionalityError(Exception):
+    """Raised in the event of dimensionality mismatch (e.g., three-dimensional mesh is requested for a two-dimensional geometry)."""
+    pass
+class DuplicateEntity(Exception):
+    """Raised in the event that disallowed duplication is detected (e.g., blocks with the same name)."""
     pass
 
-class Mesh:
-    def __init__(self, name):
+class Block:
+    """An object that represents a contiguous structured grid.
+    
+    This object corresponds to the Plot3D notion of a block in that it defines either
+    x,y or x,y,z coordinates in 2 or 3 dimensions in terms of 2 or 3 dimensional arrays.
+    When initially created, it has no defined extents. Primitives are used to fill out
+    the size of the arrays and which coordinates will be meshed, and grids are applied
+    to determine the coordinates.
+
+    Parameters
+    ----------
+    name:
+        The name of the block.
+    """
+    def __init__(self, name:str):
         self.name = name
         self._primitives = []
         self.two_dimensional = False
@@ -114,15 +232,33 @@ class Mesh:
         self._indexed = False
 
     @classmethod
-    def from_array(cls, name, array, shape=None): # rework this with Numpy or something
+    def from_list(cls, name:str, array:list[Box], shape=None): # rework this with Numpy or something
+        """Create a Block from a list of primitives.
+        
+        A class method that takes a list of primitives and creates a block from it. Currently only supports two dimensions.
+
+        Parameters
+        ----------
+        name:
+            The name of the block to create.
+        array:
+            The list of primitives to use.
+        shape:
+            The shape to use.  Passing None will cause the array to be treated as one-dimensional.
+
+        Returns
+        -------
+        Block:
+            The block created by arranging the primitives according to the shape.
+        
+        """
         primitives = []
         imax = len(array)
         jmax = 1
         # kmax = None
         if shape is not None:
             if len(shape) > 2:
-                #print(len(shape))
-                raise NotImplementedError("Three dimensional construction from array not implemented")
+                raise DimensionalityError("Three dimensional construction from array not allowed")
             imax = shape[0]
             jmax = shape[1]
 
@@ -137,12 +273,12 @@ class Mesh:
                         i_shift[i] = array[index].ni
                     else:
                         if i_shift[i] != array[index].ni:
-                            raise NotImplementedError('General dimensioning not implemented, all i sizes in array column must match')
+                            raise DimensionalityError('General dimensioning not allowed, all i sizes in array column must match')
                     if j_shift[j] is None:
                         j_shift[j] = array[index].nj
                     else:
                         if j_shift[j] != array[index].nj:
-                            raise NotImplementedError('General dimensioning not implemented, all j sizes in array row must match')
+                            raise DimensionalityError('General dimensioning not implemented, all j sizes in array row must match')
                 index += 1
         # Convert those into index shifts
         for i in range(1,imax-1):
@@ -181,7 +317,11 @@ class Mesh:
     def primitives(self):
         return self._primitives
     
-    def add(self, primitive):
+    def add(self, primitive:Box):
+        """Add a primitive to a Block.
+        
+        Add a primitive to a Block
+        """
         if self._primitives:
             if primitive.two_dimensional == self.two_dimensional:
                 self._primitives.append(primitive)
@@ -190,24 +330,66 @@ class Mesh:
         else:
             self._primitives.append(primitive)
             self.two_dimensional = primitive.two_dimensional
+        return True
     
-    def mesh(self, xgrid, ygrid, zgrid=None, force=False):
+    def mesh(self, xgrid, ygrid, zgrid=None): #, force=False):
+        """Mesh a block with the given grids.
+        
+        Apply the x, y, and maybe z grid to a block, setting the coordinate locations.
+        
+        Parameters
+        ----------
+        xgrid:
+            The x-direction grid.
+        ygrid:
+            The y-direction grid.
+        zgrid: optional
+            The z-direction grid, only required for three dimensional blocks.
+            
+        Raises
+        ------
+        AlreadyMeshed
+            If the block is already meshed.
+        """
         if self._meshed:
             raise AlreadyMeshed('Mesh "{self.name}" is already meshed')
-        if force:
-            raise NotImplementedError
+        #if force:
+        #    raise NotImplementedError
         
-        if self.two_dimensional:
-            x = np.zeros(self.ni+1)
-            for i in range(self.ni+1):
-                x[i] = xgrid.s(i)
-                #print('xx', i, x[i])
-            y = np.zeros(self.nj+1)
-            for j in range(self.nj+1):
-                y[j] = ygrid.s(j)
+        x = np.zeros(self.ni+1)
+        for i in range(self.ni+1):
+            x[i] = xgrid.s(i)
+        y = np.zeros(self.nj+1)
+        for j in range(self.nj+1):
+            y[j] = ygrid.s(j)
 
+        if zgrid is not None:
+            # Three dimensions
+            if self.two_dimensional:
+                raise DimensionalityError('z gridding not available for two-dimensional mesh')
+            z = np.zeros(self.nk+1)
+            for k in range(self.nk+1):
+                z[k] = zgrid.s(k)
+            
             self.x = np.zeros(self.node_count)
             self.y = np.zeros(self.node_count)
+            self.z = np.zeros(self.node_count)
+
+            k = 0
+            index = 0
+            for k in range(self.nk+1):
+                for j in range(self.nj+1):
+                    for i in range(self.ni+1):
+                        if self.node_index[i, j, k] > 0:
+                            self.x[index] = x[i]
+                            self.y[index] = y[j]
+                            self.z[index] = z[k]
+                            index += 1
+        else:
+            # Two dimensions
+            self.x = np.zeros(self.node_count)
+            self.y = np.zeros(self.node_count)
+            self.z = None
 
             k = 0
             index = 0
@@ -217,16 +399,23 @@ class Mesh:
                         self.x[index] = x[i]
                         self.y[index] = y[j]
                         index += 1
-        else:
-            raise NotImplementedError
         
         self._meshed = True
 
-    def index(self, force=False):
+    def index(self): #, force=False):
+        """Apply indices to the block based on primitives.
+        
+        Apply each of the primitives in mesh and determine the extents of the mesh.
+        
+        Raises
+        ------
+        AlreadyMeshed:
+            If the block is already meshed.
+        """
         if self._meshed:
             raise AlreadyMeshed('Mesh "{self.name}" is already meshed')
-        if force:
-            raise NotImplementedError
+        #if force:
+        #    raise NotImplementedError
         
         if not self._primitives:
             return
@@ -235,11 +424,10 @@ class Mesh:
         self.blocks = []
         sidesets = set()
         for primitive in self._primitives:
-            if primitive.block not in self.blocks:
-                self.blocks.append(primitive.block)
+            if primitive.element_set not in self.blocks:
+                self.blocks.append(primitive.element_set)
             sidesets.update(primitive.sidesets())
-            #print(primitive.sidesets())
-        
+
         # Number the blocks from 1
         reverse_lookup = {}
         for i, block in enumerate(self.blocks):
@@ -300,7 +488,7 @@ class Mesh:
                 k1 = primitive.k + primitive.nk - self.k_offset
             self.cells[primitive.i - self.i_offset:primitive.i + primitive.ni - self.i_offset,
                        primitive.j - self.j_offset:primitive.j + primitive.nj - self.j_offset,
-                       k0:k1] = primitive.block.id * primitive.footprint()
+                       k0:k1] = primitive.element_set.id * primitive.footprint()
         
         # Assign cell numbers and flag nodes, probably need to do this differently
         index = 0
@@ -353,21 +541,13 @@ class Mesh:
             for primitive in self._primitives:
                 self.sidesets[set_name].extend(primitive.sideset(set_name))
                 
-        #print(self.cell_count, self.node_count)
-        #print(len(self.sidesets))
-        #print(self.sidesets)
-        #print(self.ni, self.nj)
         self._indexed = True
     
     def iblank(self) -> np.array:
-        print(self.node_index)
         if not self._indexed:
             self.index()
         ib = np.where(self.node_index>0, 1, 0)
         return ib
-    
-    def write_plot3d(self, filename:str)->bool:
-        return False
 
     def write_exodusii(self, filename:str):
         exo = exodusii.exodusii_file(filename, 'w')
@@ -380,7 +560,7 @@ class Mesh:
             type = 'QUAD'
         exo.put_init(self.name, ndim, self.node_count, self.cell_count,
                      len(self.blocks), 0, len(self.sidesets))
-        exo.put_coord(self.x, self.y)
+        exo.put_coord(self.x, self.y, self.z)
 
         # Write out the blocks
         for nb, block in enumerate(self.blocks):
@@ -415,30 +595,173 @@ class Mesh:
                                 conn.append(cell)
             exo.put_element_conn(block.id, np.array(conn))
 
-        #exo.close()
-        #return
-
         # Write out the sidesets
         id = 1
         for name, subsets in self.sidesets.items():
             elements = []
             sides = []
-            #print(name)
-            #print(self.cell_index.shape)
             for sub in subsets:
-                #print(range(sub.k - self.k_offset, sub.k - self.k_offset + sub.nk))
-                #print(range(sub.j - self.j_offset, sub.j - self.j_offset + sub.nj))
-                #print(range(sub.i - self.i_offset, sub.i - self.i_offset + sub.ni))
                 for k in range(sub.k - self.k_offset, sub.k - self.k_offset + sub.nk):
                     for j in range(sub.j - self.j_offset, sub.j - self.j_offset + sub.nj):
                         for i in range(sub.i - self.i_offset, sub.i - self.i_offset + sub.ni):
                             if self.cell_index[i,j,k] > 0:
                                 elements.append(self.cell_index[i,j,k])
                                 sides.append(sub.number)
-            #print(len(elements))
             exo.put_side_set_param(id, len(elements))
             exo.put_side_set_name(id, name)
             exo.put_side_set_sides(id, elements, sides)
             id += 1
 
         exo.close()
+        return True
+    
+    def write_plot3d(self, filename:str, binary=True)->bool:
+        # For now, only support one big Plot3D block
+        if self.two_dimensional:
+            the_shape = (self.ni+1, self.nj+1, 1)
+            block = plot3d.Block(np.reshape(self.x, the_shape, order='F'),
+                                 np.reshape(self.y, the_shape, order='F'),
+                                 None)
+            plot3d.write_plot2D(filename, [block], binary=binary)
+        else:
+            the_shape = (self.ni+1, self.nj+1, self.nk+1)
+            block = plot3d.Block(np.reshape(self.x, the_shape, order='F'),
+                                 np.reshape(self.y, the_shape, order='F'),
+                                 np.reshape(self.z, the_shape, order='F'))
+            plot3d.write_plot3D(filename, [block], binary=binary)
+        return True
+    
+class Mesh:
+    """An object that contains one or more grid blocks.
+    
+    This object contains the grid blocks and maintains the numbering and naming scheme.
+    The other objects should be requested from this object, which enforces the necessary
+    order of things and will minimize the potential issues with ids.
+
+    Parameters
+    ----------
+    name:
+        The name of the mesh.
+    
+    """
+    def __init__(self, name:str):
+        self.name = name
+        self.blocks = []
+        self.element_sets = {}
+
+    def new_element_set(self, name:str)->ElementSet:
+        """Create a new element set associated with this mesh.
+        
+        Parameters
+        ----------
+        name:
+            Name of the new element set.
+
+        Raises
+        ------
+        DupicateEntity:
+            If the name is already present as an element set.
+
+        """
+        if name in self.element_sets:
+            raise DuplicateEntity('An element set named "%s" is already part of mesh "%s", duplicates not allowed.' % (name, self.name))
+        id = len(self.element_sets) + 1
+        es = ElementSet(name, id)
+        self.element_sets[name] = es
+        return es
+    
+    def new_block(self, *primitives: Box):
+        id = len(self.blocks) + 1
+        block = Block('block_%d'%id)
+        for primitive in primitives:
+            if primitive.element_set is None:
+                es_name = 'element_set_%d' % (len(self.element_sets) + 1)
+                if primitive.name is not None:
+                    es_name = 'element_set_' + primitive.name
+                es = self.new_element_set(es_name)
+                primitive.element_set = es
+            elif isinstance(primitive.element_set, str):
+                es = self.element_sets.get(primitive.element_set, self.new_element_set(primitive.element_set))
+                primitive.element_set = es
+            block.add(primitive)
+        self.blocks.append(block)
+        return block
+    
+    @property
+    def node_count(self):
+        count = 0
+        for block in self.blocks:
+            count += block.node_count
+        return count
+    
+    @property
+    def cell_count(self):
+        count = 0
+        for block in self.blocks:
+            count += block.cell_count
+        return count
+    
+    def block_from_list(self, name:str, array:list[Box], shape:tuple[int,int]|None=None)->Block:
+        """Create a Block from a list of primitives.
+        
+        Take a list of primitives and create a block from it. Currently only supports two dimensions.
+
+        Parameters
+        ----------
+        name:
+            The name of the block to create.
+        array:
+            The list of primitives to use.
+        shape:
+            The shape to use.  Passing None will cause the array to be treated as one-dimensional.
+
+        Returns
+        -------
+        Block:
+            The block created by arranging the primitives according to the shape.
+        
+        """
+        for primitive in array:
+            if primitive is None:
+                continue
+            if primitive.element_set is None:
+                es_name = 'element_set_%d' % (len(self.element_sets) + 1)
+                if primitive.name is not None:
+                    es_name = 'element_set_' + primitive.name
+                primitive.element_set = self.new_element_set(es_name)
+            elif isinstance(primitive.element_set, str):
+                if primitive.element_set in self.element_sets:
+                    primitive.element_set = self.element_sets[primitive.element_set]
+                else:
+                    primitive.element_set = self.new_element_set(primitive.element_set)
+        block = Block.from_list(name, array, shape=shape)
+        block.id = len(self.blocks) + 1
+        self.blocks.append(block)
+        return block
+    
+    def write_exodusii(self, filename:str)->bool:
+        return self.blocks[0].write_exodusii(filename)
+
+    def write_plot3d(self, filename:str, binary=True)->bool:
+        return self.blocks[0].write_plot3d(filename)
+    
+    def index(self):
+        for block in self.blocks:
+            # Handle the element sets
+            for primitive in block.primitives:
+                if primitive.element_set is None:
+                    es_name = 'element_set_%d' % (len(self.element_sets) + 1)
+                    if primitive.name is not None:
+                        es_name = 'element_set_' + primitive.name
+                    primitive.element_set = self.new_element_set(es_name)
+                elif isinstance(primitive.element_set, str):
+                    if primitive.element_set in self.element_sets:
+                        primitive.element_set = self.element_sets[primitive.element_set]
+                    else:
+                        primitive.element_set = self.new_element_set(primitive.element_set)
+            # Set up the block indices
+            block.index()
+
+    def mesh(self):
+        for block in self.blocks:
+            block.mesh()

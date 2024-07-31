@@ -2,13 +2,12 @@
 
 import numpy as np 
 import math 
-from tqdm import trange
 from typing import List
 
 class Block:
     """Plot3D Block definition
     """
-    def __init__(self, X:np.ndarray,Y:np.ndarray,Z:np.ndarray):
+    def __init__(self, X:np.ndarray,Y:np.ndarray,Z:np.ndarray|None):
         """Initializes the block using all the X,Y,Z coordinates of the block
 
         Args:
@@ -21,10 +20,14 @@ class Block:
         self.X = X
         self.Y = Y
         self.Z = Z
+        self.three_dimensional = True
+        if Z is None:
+            self.three_dimensional = False
+            self.Z = np.zeros(X.shape, X.dtype)
         # Centroid 
         self.cx = np.mean(X) 
         self.cy = np.mean(Y)
-        self.cz = np.mean(Z)
+        self.cz = np.mean(self.Z)
         
     
     def scale(self,factor:float):
@@ -134,7 +137,7 @@ class Block:
         cf = np.zeros(shape=(6,3))
         v = np.zeros(shape=(self.IMAX,self.JMAX,self.KMAX))
         
-        for k in trange(1,self.KMAX,desc='Calculating the volumes'):
+        for k in range(1,self.KMAX):
             for j in range(1,self.JMAX):            
                 for i in range(1,self.IMAX):
                     cf[0,0] = X[i-1,j-1,k-1] + X[i-1,j-1,k] + X[i-1,j,k-1] + X[i-1,j,k]

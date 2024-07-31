@@ -24,7 +24,8 @@ classifiers = [
 dependencies = [
   "click",
   "numpy",
-  "netcdf4"
+  "netcdf4",
+  "pandas"
 ]
 dynamic = ["version"]
 
@@ -59,6 +60,10 @@ branch = true
 parallel = true
 omit = [
   "src/hippogryph/__about__.py",
+  "src/hippogryph/__init__.py",
+  "src/hippogryph/__main__.py",
+  "src/hippogryph/plot3d/*",
+  "src/hippogryph/exodusii/*"
 ]
 
 [tool.coverage.report]

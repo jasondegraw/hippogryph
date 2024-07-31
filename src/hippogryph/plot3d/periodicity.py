@@ -10,7 +10,6 @@ from .facefunctions import outer_face_dict_to_list,match_faces_dict_to_list, cre
 from .connectivity import get_face_intersection, face_matches_to_dict
 from math import cos, radians, sin, sqrt, acos, radians
 from copy import deepcopy
-from tqdm import trange, tqdm
 import math 
 
 def periodicity_fast(blocks:List[Block],outer_faces:List[Face], matched_faces:List[Dict[str,int]], periodic_direction:str='k', rotation_axis:str='x',nblades:int=55):
@@ -177,7 +176,7 @@ def periodicity(blocks:List[Block],outer_faces:List[Dict[str,int]], matched_face
         periodic_found = False        
         outer_faces_to_remove = list()  # Integer list of which outher surfaces to remove
         outer_face_combos = list(combinations_with_replacement(range(len(outer_faces_all)),2))
-        t = trange(len(outer_face_combos))
+        t = len(outer_face_combos)
         for i in t: 
             # Check if surfaces are periodic with each other
             face1_indx = outer_face_combos[i][0]
@@ -395,7 +394,7 @@ def rotated_periodicity(blocks:List[Block], matched_faces:List[Dict[str,int]], o
         outer_faces_to_remove = list()  # Integer list of which outer surfaces to remove
         outer_face_combos = list(permutations(range(len(outer_faces_all)),2))
         outer_face_combos = list(set(outer_face_combos) - set(non_matching)) # removes face combinations already checked
-        t = trange(len(outer_face_combos))
+        t = len(outer_face_combos)
         for i in t: 
             # Check if surfaces are periodic with each other
             face1_indx = outer_face_combos[i][0]
@@ -579,7 +578,7 @@ def translational_periodicity(blocks:List[Block], lower_connected_faces:List[Dic
     upper_connected_faces = list(set(upper_connected_faces))
     lower_blocks = [l.BlockIndex for l in lower_connected_faces]
     upper_blocks = [u.BlockIndex for u in upper_connected_faces]
-    pbar = tqdm(total = len(lower_connected_faces))
+    #pbar = tqdm(total = len(lower_connected_faces))
     
     periodicity_tol = 1E-6 
     while len(lower_connected_faces)>0:
@@ -588,7 +587,7 @@ def translational_periodicity(blocks:List[Block], lower_connected_faces:List[Dic
         for indx in range(len(upper_connected_faces)):
             face2 = upper_connected_faces[indx]
             # Check if surfaces are periodic with each other
-            pbar.set_description(f"Checking connections block {face1.blockIndex} with {face2.blockIndex}")
+            #pbar.set_description(f"Checking connections block {face1.blockIndex} with {face2.blockIndex}")
             # Shift block 1 -> Check periodicity -> if not periodic -> shift Block 1 opposite direction -> Check periodicity
             #   Rotate Block 1
             block1 = blocks[face1.blockIndex]
@@ -609,7 +608,7 @@ def translational_periodicity(blocks:List[Block], lower_connected_faces:List[Dic
                 lower_connected_faces.extend(lower_split_faces)
                 upper_connected_faces.extend(upper_split_faces)
                 periodic_found = True
-                pbar.update(1)
+                #pbar.update(1)
                 break
             else:
                 # Try the other way 
@@ -624,7 +623,7 @@ def translational_periodicity(blocks:List[Block], lower_connected_faces:List[Dic
                     lower_connected_faces.extend(lower_split_faces)
                     upper_connected_faces.extend(upper_split_faces)
                     periodic_found = True
-                    pbar.update(1)
+                    #pbar.update(1)
                     break
     
         if periodic_found == False:
