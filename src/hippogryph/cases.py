@@ -5,10 +5,76 @@
 from .meshblock import Mesh, Box, Block, DimensionalityError
 from .grid import Uniform, Geometric, Composite
 
-def channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk:int=0) -> Block:
+def half_channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk:int=0, dy:float|None=None,
+                 down_label:str|None=None, up_label:str|None=None, left_label:str|None=None,
+                 right_label:str|None=None, front_label:str|None=None, back_label:str|None=None,
+                 domain_label:str|None=None) -> Block:
+    """
+    Generate a half-channel grid
+    """
+    (up_label, down_label, 
+     left_label, right_label, 
+     front_label, back_label,
+     domain_label) = (el[1] if el[0] is None else el[0] for el in zip([up_label, down_label,
+                                                                       left_label, right_label,
+                                                                       front_label, back_label,
+                                                                       domain_label],
+                                                                       ['top_wall', 'bottom_wall',
+                                                                        'inflow', 'outflow',
+                                                                        'front_wall', 'back_wall',
+                                                                        'domain']))
+    if nk == 0 and z > 0.0:
+        raise DimensionalityError('Channel grid specifies zero z-direction cells but non-zero z length')
+    if nk > 0 and  z == 0.0:
+        raise DimensionalityError('Channel grid specifies zero z length but non-zero z-direction cells')
+
+    mesh = Mesh('half-channel')
+    if nk == 0:
+        box = Box(ni=ni, nj=nj, nk=nk, element_set=domain_label, left_label=left_label, right_label=right_label,
+                  up_label=up_label, down_label=down_label)
+    else:
+        box = Box(ni=ni, nj=nj, nk=nk, element_set=domain_label, left_label=left_label, right_label=right_label,
+                  up_label=up_label, down_label=down_label, front_label=front_label,
+                  back_label=back_label)
+
+    block = mesh.new_block(box)
+
+    block.index()
+
+    xgrid = Uniform.from_intervals(x, block.ni)
+    if dy is None:
+        ygrid = Uniform.from_intervals(y, block.nj, shift=-0.5*y)
+    else:
+        ygrid = Geometric.from_delta(dy, y, nj)
+    #ygrid = Uniform.from_intervals(y, block.nj, shift=-0.5*y)
+    zgrid = None
+    if nk != 0:
+        zgrid = Uniform.from_intervals(z, block.nk, shift=-0.5*z)
+
+    block.mesh(xgrid=xgrid, ygrid=ygrid, zgrid=zgrid)
+
+    return mesh
+
+def channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk:int=0,
+            down_label:str|None=None, up_label:str|None=None, left_label:str|None=None,
+            right_label:str|None=None, front_label:str|None=None, back_label:str|None=None,
+            domain_label:str|None=None) -> Block:
     """
     Generate a channel grid
     """
+    (up_label, down_label,
+     left_label, right_label,
+     front_label, back_label,
+     domain_label) = (el[1] if el[0] is None else el[0] for el in zip([up_label, down_label,
+                                                                       left_label, right_label,
+                                                                       front_label, back_label,
+                                                                       domain_label],
+                                                                      ['top_wall', 'bottom_wall',
+                                                                       'inflow', 'outflow',
+                                                                       'front_wall', 'back_wall',
+                                                                       'domain']))
+
+
     if nk == 0 and z > 0.0:
         raise DimensionalityError('Channel grid specifies zero z-direction cells but non-zero z length')
     if nk > 0 and  z == 0.0:
@@ -16,12 +82,12 @@ def channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk:int=
 
     mesh = Mesh('channel')
     if nk == 0:
-        box = Box(ni=ni, nj=nj, nk=nk, element_set='domain', left_label='inflow', right_label='outflow',
-                  up_label='top_wall', down_label='bottom_wall')
+        box = Box(ni=ni, nj=nj, nk=nk, element_set=domain_label, left_label=left_label, right_label=right_label,
+                  up_label=up_label, down_label=down_label)
     else:
-        box = Box(ni=ni, nj=nj, nk=nk, element_set='domain', left_label='inflow', right_label='outflow',
-                  up_label='top_wall', down_label='bottom_wall', front_label='front_wall',
-                  back_label='back_wall')
+        box = Box(ni=ni, nj=nj, nk=nk, element_set=domain_label, left_label=left_label, right_label=right_label,
+                  up_label=up_label, down_label=down_label, front_label=front_label,
+                  back_label=back_label)
 
     block = mesh.new_block(box)
 

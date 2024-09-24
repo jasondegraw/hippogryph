@@ -303,7 +303,7 @@ class Geometric:
     def from_delta(cls, delta: float, L: float, n: int, tolerance: float = 1.0e-14, max_iterations: int = 100,
                    output=print, shift: float = 0.0):
         ds = delta / L # Rescale
-        factor = single_sided_geometric(ds, n, tolerance=tolerance, max_iterations=max_iterations, output=output)
+        factor = single_sided_geometric(ds, n, tolerance=tolerance, max_iterations=max_iterations, output=output, init=1.5)
         if factor is None:
             return None
         return cls(factor, delta, L, n, shift=shift)
