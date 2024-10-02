@@ -50,6 +50,9 @@ def half_channel(x_length, y_length, z_length, dy, yplus, re_tau, ni, nj, nk, ou
         success = mesh.write_plot3d(output, binary=binary)
     if not success:
         click.echo('Writing output to "%s" failed' % output)
+    click.echo('# Mesh Statistics #')
+    click.echo('x extents: %e to %e' % (mesh.blocks[0].x[0], mesh.blocks[0].x[-1]))
+    click.echo('y extents: %e to %e' % (mesh.blocks[0].y[0], mesh.blocks[0].y[-1]))
 
 @click.command()
 @click.option('-x', '--x-length', type=click.FloatRange(0.0, min_open=True), show_default=True, default=32.0, help='Length of the grid in the x direction.')
