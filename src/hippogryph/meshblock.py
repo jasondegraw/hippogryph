@@ -549,7 +549,7 @@ class Block:
         ib = np.where(self.node_index>0, 1, 0)
         return ib
 
-    def write_exodusii(self, filename:str):
+    def write_exodusii(self, filename:str, info:list[str]|None=None):
         exo = exodusii.exodusii_file(filename, 'w')
         ndim = 3
         nnodes = 8
@@ -612,7 +612,15 @@ class Block:
             exo.put_side_set_sides(id, elements, sides)
             id += 1
 
+        if info is not None:
+            # Assume that the lines are not too long
+            exo.put_info(len(info), info)
+
         exo.close()
+        #
+        #exo = exodusii.exodusii_file(filename, 'r')
+        #print(exo.get_info_records())
+        #exo.close()
         return True
     
     def write_plot3d(self, filename:str, binary=True)->bool:
@@ -739,8 +747,8 @@ class Mesh:
         self.blocks.append(block)
         return block
     
-    def write_exodusii(self, filename:str)->bool:
-        return self.blocks[0].write_exodusii(filename)
+    def write_exodusii(self, filename:str, info:list[str]|None=None)->bool:
+        return self.blocks[0].write_exodusii(filename, info=info)
 
     def write_plot3d(self, filename:str, binary=True)->bool:
         return self.blocks[0].write_plot3d(filename)
