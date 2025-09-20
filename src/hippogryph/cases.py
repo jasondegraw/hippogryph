@@ -43,7 +43,7 @@ def half_channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk
 
     xgrid = Uniform.from_intervals(x, block.ni)
     if dy is None:
-        ygrid = Uniform.from_intervals(y, block.nj, shift=-0.5*y)
+        ygrid = Uniform.from_intervals(y, block.nj)
     else:
         ygrid = Geometric.from_delta(dy, y, nj)
     #ygrid = Uniform.from_intervals(y, block.nj, shift=-0.5*y)

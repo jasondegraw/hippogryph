@@ -64,8 +64,8 @@ def half_channel(x_length, y_length, z_length, dy, yplus, re_tau, ni, nj, nk, ou
 @click.option('-o', '--output', type=click.Path(dir_okay=False, writable=True), show_default=True, default=None, help='File to write output to, defaults to "chan.exo|xyz|xy".')
 @click.option('-f', '--format', type=click.Choice(['exo', 'plot3d']), default='exo', help='Specify format to use.')
 @click.option('-a', '--ascii', is_flag=True, show_default=True, default=False, help='Write ASCII format (if possible).')
-@click.option('-t', '--top-wall-label', type=str, show_default=True, default='wall', help='Label for the wall boundary.')
-@click.option('-b', '--bottom-wall-label', type=str, show_default=True, default='centerline', help='Label for the centerline boundary.')
+@click.option('-t', '--top-label', type=str, show_default=True, default='top', help='Label for the top boundary.')
+@click.option('-b', '--bottom-label', type=str, show_default=True, default='bottom', help='Label for the bottom boundary.')
 @click.option('-l', '--left-label', type=str, show_default=True, default='inflow', help='Label for the left boundary.')
 @click.option('-r', '--right-label', type=str, show_default=True, default='outflow', help='Label for the right boundary.')
 @click.option('-n', '--name', type=str, show_default=True, default='domain', help='Label for the flow domain.')
@@ -151,6 +151,51 @@ def tjunct(number, output, format, ascii):
         success = mesh.write_plot3d(output, binary=binary)
     if not success:
         click.echo('Writing output to "%s" failed' % output)
+
+@click.command()
+@click.option('-x', '--x-length', type=click.FloatRange(0.0, min_open=True), show_default=True, default=32.0, help='Length of the grid in the x direction.')
+@click.option('-y', '--y-length', type=click.FloatRange(0.0, min_open=True), show_default=True, default=1.0, help='Length of the grid in the y direction.')
+@click.option('-z', '--z-length', type=click.FloatRange(0.0, min_open=False), show_default=True, default=0.0, help='Length of the grid in the z direction.')
+@click.option('-i', '--ni', type=click.IntRange(1), show_default=True, default=32, help='Number of cells in the i (x) direction.')
+@click.option('-j', '--nj', type=click.IntRange(1), show_default=True, default=32, help='Number of cells in the j (y) direction.')
+@click.option('-k', '--nk', type=click.IntRange(0), show_default=True, default=0, help='Number of cells in the k (z) direction.')
+@click.option('-o', '--output', type=click.Path(dir_okay=False, writable=True), show_default=True, default=None, help='File to write output to, defaults to "rectangle.exo|xyz|xy".')
+@click.option('-f', '--format', type=click.Choice(['exo', 'plot3d']), default='exo', help='Specify format to use.')
+@click.option('-a', '--ascii', is_flag=True, show_default=True, default=False, help='Write ASCII format (if possible).')
+@click.option('-b', '--bottom-label', type=str, show_default=True, default='bottom', help='Label for the bottom boundary.')
+@click.option('-t', '--top-label', type=str, show_default=True, default='top', help='Label for the top boundary.')
+@click.option('-l', '--left-label', type=str, show_default=True, default='inflow', help='Label for the left boundary.')
+@click.option('-r', '--right-label', type=str, show_default=True, default='outflow', help='Label for the right boundary.')
+@click.option('-n', '--name', type=str, show_default=True, default='domain', help='Label for the flow domain.')
+def rectangle(x_length, y_length, z_length, dy, yplus, re_tau, ni, nj, nk, output, format, ascii, wall_label,
+                 centerline_label, left_label, right_label, name):
+    """
+    Generate a simple rectangular grid.
+    """
+    binary = not ascii
+    if yplus is not None and re_tau is not None:
+        # Put y+ = Re_\tau at the y=y_length boundary:
+        #   u_tau * y_length/ nu = re_tau => u_tau / nu = re_tau / y_length
+        # and then
+        #   yplus = dy * u_tau / nu => dy = yplus * y_length / re_tau
+        dy = yplus * y_length / re_tau
+    mesh = hpg.half_channel(x=x_length, y=y_length, z=z_length, ni=ni, nj=nj, nk=nk, dy=dy, left_label=left_label,
+                            right_label=right_label, down_label=wall_label, up_label=centerline_label, domain_label=name)
+    if format == 'exo':
+        if output is None:
+            output = 'halfchan.exo'
+        success = mesh.write_exodusii(output)
+    elif format == 'plot3d':
+        if output is None:
+            output = 'halfchan.xyz'
+            if mesh.two_dimensional:
+                output = 'halfchan.xy'
+        success = mesh.write_plot3d(output, binary=binary)
+    if not success:
+        click.echo('Writing output to "%s" failed' % output)
+    click.echo('# Mesh Statistics #')
+    click.echo('x extents: %e to %e' % (mesh.blocks[0].x[0], mesh.blocks[0].x[-1]))
+    click.echo('y extents: %e to %e' % (mesh.blocks[0].y[0], mesh.blocks[0].y[-1]))
 
 @click.command()
 @click.option('-o', '--output', type=click.Path(writable=True, dir_okay=False), show_default=True, default='p3d.exo', help='File to write output to, defaults to "p3d.exo".')
