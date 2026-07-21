@@ -4,8 +4,10 @@
 # SPDX-License-Identifier: BSD-3-Clause
 from . import exodusii
 from . import plot3d
+from .__about__ import __version__
 import struct
 import numpy as np
+import textwrap
 
 def discard_output(mesg):
     pass
@@ -106,3 +108,22 @@ def convert_plot3d(input_file, output_file, verbose=False):
     status('Done.')
 
     exo.close()
+
+def exo_info_lines(args:list[str], max_line_length:int=80, indent:int=2):
+    offset = indent*' '
+    result = [f'hippogryph v{__version__}']
+    txt = ' '.join(args)
+    return [f'hippogryph v{__version__}'] + textwrap.wrap(txt, width=max_line_length-1, break_on_hyphens=False,
+                                                          subsequent_indent=offset)
+    current = args[0]
+    for arg in args[1:]:
+        length = len(arg)
+        if length >= max_line_length:
+            pass
+            #return []
+        if len(current) + 1 + length >= max_line_length:
+            result.append(current)
+            current = offset + arg
+        else:
+            current += ' ' + arg
+    return result

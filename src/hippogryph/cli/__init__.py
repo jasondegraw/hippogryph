@@ -3,6 +3,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 import click
 import json
+import sys
 import hippogryph as hpg
 
 from ..__about__ import __version__
@@ -42,7 +43,7 @@ def half_channel(x_length, y_length, z_length, dy, yplus, re_tau, ni, nj, nk, ou
     if format == 'exo':
         if output is None:
             output = 'halfchan.exo'
-        success = mesh.write_exodusii(output)
+        success = mesh.write_exodusii(output, info=hpg.exo_info_lines(sys.argv))
     elif format == 'plot3d':
         if output is None:
             output = 'halfchan.xyz'
