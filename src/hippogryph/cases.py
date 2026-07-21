@@ -103,7 +103,7 @@ def channel(x:float=1.0, y:float=1.0, z:float=0.0, ni:int=32, nj:int=32, nk:int=
 
     return mesh
 
-def backward_step(M:int) -> Block:
+def backward_step(M:int, inlet_centered:bool=True) -> Block:
     """
     Generate a backward-facing step grid
     """
@@ -117,7 +117,11 @@ def backward_step(M:int) -> Block:
 
     mesh.index()
 
-    ygrid = Uniform.from_intervals(1.0, block.nj, shift=-0.75)
+    shift = -0.5
+    if inlet_centered:
+        shift = -0.75
+
+    ygrid = Uniform.from_intervals(1.0, block.nj, shift=shift)
     xunif = Uniform.from_delta(ygrid.delta, 16*N)
     xstretch = Geometric.from_delta(xunif.delta, 16, N)
     xgrid = Composite([xunif, xstretch])

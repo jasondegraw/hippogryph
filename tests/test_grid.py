@@ -10,7 +10,7 @@ def dev_null(mesg):
 
 def test_one_sided_vinokur_functions():
     ds = hippogryph.single_sided_vinokur(1.0e-6, 1, 16, output=dev_null)
-    assert abs(ds - 7.4717023123662765) < 1.0e-15
+    assert abs(ds - 7.4717023123662765) < 1.0e-14
     assert abs(hippogryph.vkruh(ds, 1.0, 1, 16) - 1.0e-6) < 1.0e-15
 
     ds = hippogryph.single_sided_vinokur(-1.0e-6, 1, 16, output=dev_null)

@@ -2,6 +2,7 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 import click
+import json
 import hippogryph as hpg
 
 from ..__about__ import __version__
@@ -27,7 +28,7 @@ from ..__about__ import __version__
 def half_channel(x_length, y_length, z_length, dy, yplus, re_tau, ni, nj, nk, output, format, ascii, wall_label,
                  centerline_label, left_label, right_label, name):
     """
-    Generate a boundary layer grid.
+    Generate a boundary layer grid with clustering near the wall.
     """
     binary = not ascii
     if yplus is not None and re_tau is not None:
@@ -69,10 +70,12 @@ def half_channel(x_length, y_length, z_length, dy, yplus, re_tau, ni, nj, nk, ou
 @click.option('-l', '--left-label', type=str, show_default=True, default='inflow', help='Label for the left boundary.')
 @click.option('-r', '--right-label', type=str, show_default=True, default='outflow', help='Label for the right boundary.')
 @click.option('-n', '--name', type=str, show_default=True, default='domain', help='Label for the flow domain.')
-def channel(x_length, y_length, z_length, ni, nj, nk, output, format, ascii, top_wall_label, bottom_wall_label,
-            left_label, right_label, name):
+@click.option('--bc', type=click.Path(dir_okay=False, writable=True), show_default=True, default=None, help='JSON file to write boundary condition output to.')
+@click.option('--force-3d', is_flag=True, show_default=True, default=False, help='For 2d grids, force Plot3D output to be (nearly) 3d.')
+def box(x_length, y_length, z_length, ni, nj, nk, output, format, ascii, top_wall_label, bottom_wall_label,
+        left_label, right_label, name, bc, force_3d):
     """
-    Generate a channel grid.
+    Generate a uniform box-type grid.
     """
     binary = not ascii
     mesh = hpg.channel(x=x_length, y=y_length, z=z_length, ni=ni, nj=nj, nk=nk, left_label=left_label, right_label=right_label,
@@ -86,7 +89,44 @@ def channel(x_length, y_length, z_length, ni, nj, nk, output, format, ascii, top
             output = 'chan.xyz'
             if mesh.two_dimensional:
                 output = 'chan.xy'
-        success = mesh.write_plot3d(output, binary=binary)
+        success = mesh.write_plot3d(output, binary=binary, force_3d=force_3d)
+    if bc is not None:
+        bcout = {
+            top_wall_label: {
+                'i_min': 0,
+                'i_max': ni,
+                'j_min': nj,
+                'j_max': nj,
+                'k_min': 0,
+                'k_max': nk
+            },
+            bottom_wall_label: {
+                'i_min': 0,
+                'i_max': ni,
+                'j_min': 0,
+                'j_max': 0,
+                'k_min': 0,
+                'k_max': nk
+            },
+            right_label: {
+                'i_min': ni,
+                'i_max': ni,
+                'j_min': 0,
+                'j_max': nj,
+                'k_min': 0,
+                'k_max': nk
+            },
+            left_label: {
+                'i_min': 0,
+                'i_max': 0,
+                'j_min': 0,
+                'j_max': nj,
+                'k_min': 0,
+                'k_max': nk
+            }
+        }
+        with open(bc, 'w') as fp:
+            json.dump(bcout, fp, indent=2)
     if not success:
         click.echo('Writing output to "%s" failed' % output)
 
@@ -106,14 +146,21 @@ def validate_even_int(ctx: click.core.Context,
 @click.option('-n', '--number', callback=validate_even_int, show_default=True, default=32, help='Number of elements across the channel (must be even).')
 #@click.option('-z', '--z-length', type=click.File('w'), show_default=True, default=1.0, help='Length of the grid in the z direction.')
 @click.option('-o', '--output', type=click.Path(writable=True, dir_okay=False), show_default=True, default=None, help='File to write output to, defaults to "bfs.exo|xyz|xy".')
-@click.option('-f', '--format', type=click.Choice(['exo', 'plot3d']), default=None, help='Specify format to use.')
+@click.option('-f', '--format', type=click.Choice(['exo', 'plot3d']), default='exo', help='Specify format to use.')
 @click.option('-a', '--ascii', is_flag=True, show_default=True, default=False, help='Write ASCII format (if possible).')
-def bfs(number, output, format, ascii):
+@click.option('--force-3d', is_flag=True, show_default=True, default=False, help='For 2d grids, force Plot3D output to be (nearly) 3d.')
+@click.option('--centerline', is_flag=True, show_default=True, default=False, help='Place the center of the grid at the centerline of the channel instead of the centerline of the inlet.')
+def bfs(number, output, format, ascii, force_3d, centerline):
     '''
     Generate a backward-facing step grid
     '''
     binary = not ascii
-    mesh = hpg.backward_step(int(number/2.0))
+    success = False
+    inlet_centered = True
+    if centerline:
+        inlet_centered = False
+
+    mesh = hpg.backward_step(int(number/2.0), inlet_centered=inlet_centered)
     if format == 'exo':
         if output is None:
             output = 'bfs.exo'
@@ -121,9 +168,9 @@ def bfs(number, output, format, ascii):
     elif format == 'plot3d':
         if output is None:
             output = 'bfs.xyz'
-            if mesh.two_dimensional:
+            if mesh.two_dimensional and not force_3d:
                 output = 'bfs.xy'
-        success = mesh.write_plot3d(output, binary=binary)
+        success = mesh.write_plot3d(output, binary=binary, force_3d=force_3d)
     if not success:
         click.echo('Writing output to "%s" failed' % output)
 
@@ -170,7 +217,7 @@ def hippogryph(ctx: click.Context):
     pass
 
 hippogryph.add_command(half_channel)
-hippogryph.add_command(channel)
+hippogryph.add_command(box)
 hippogryph.add_command(bfs)
 hippogryph.add_command(tjunct)
 hippogryph.add_command(convert_plot3d)

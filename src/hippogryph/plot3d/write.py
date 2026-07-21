@@ -68,6 +68,7 @@ def write_plot3D(filename:str,blocks:List[Block],binary:bool=True,double_precisi
         binary (bool, optional): Binary big endian. Defaults to True.
         double_precision (bool, optional). Writes to binary file using double precision. Defaults to True
     """
+    print(binary)
     if binary:
         with open(filename,'wb') as f:
             f.write(struct.pack('I',len(blocks)))
@@ -79,6 +80,7 @@ def write_plot3D(filename:str,blocks:List[Block],binary:bool=True,double_precisi
             for b in blocks:
                 __write_plot3D_block_binary(f,b,double_precision)
     else:
+        print(binary)
         with open(filename,'w') as f:
             f.write('{0:d}\n'.format(len(blocks)))
             for b in blocks:
